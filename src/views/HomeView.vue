@@ -575,7 +575,7 @@ onUnmounted(() => {
   pointer-events: auto;
   width: 90%;
   max-width: 650px;
-  background: rgba(15, 23, 42, 0.85); /* 모바일 가독성을 위해 투명도 조절 */
+  // background: rgba(15, 23, 42, 1); /* 모바일 가독성을 위해 투명도 조절 */
   backdrop-filter: blur(16px);
   border: 1px solid $border-color;
   border-radius: 1.5rem;
@@ -584,7 +584,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
   /* 모바일 스타일 조정 */
   @media (max-width: 767px) {
     width: 95%;
@@ -592,7 +594,37 @@ onUnmounted(() => {
     gap: 1rem;
     max-height: 70vh; /* 너무 길어지지 않게 제한 */
     overflow-y: auto; /* 내용 많으면 내부 스크롤 */
-    // margin-bottom: 5vh;
+  }
+
+  /* 네온 효과 요소 추가 */
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: -2;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(transparent, rgba(255, 197, 51, 0.5), transparent 30%);
+    animation: rotate 4s linear infinite;
+    pointer-events: none;
+  }
+
+  /* 내부 컨텐츠가 가려지지 않도록 배경을 하나 더 덧댐 */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 1px; /* 1px 안쪽으로 */
+    // background: rgba(15, 23, 42, 1); /* 카드 배경색 */
+    background: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, #212121 100%);
+    border-radius: inherit;
+    z-index: -1;
+  }
+
+  @keyframes rotate {
+    100% {
+      transform: rotate(1turn);
+    }
   }
 
   .card-header {
