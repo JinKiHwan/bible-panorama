@@ -7,10 +7,10 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 const wrapper = ref(null);
-const container = ref(null);
 const currentEraIndex = ref(0);
 const isBooksVisible = ref(false);
 const progress = ref(0);
+const isNavOpen = ref(false); // 네비게이션 메뉴 토글 상태
 // 배경 이미지 제어를 위한 ref 추가
 const bgImage = ref(null);
 // 현재 표시 중인 배경 이미지 URL (초기값 설정)
@@ -22,7 +22,7 @@ const eras = ref([
     id: 1,
     title: '창조 시대',
     subtitle: '시작의 역사',
-    bgKeyword: 'BEGINNING',
+    bgKeyword: 'beggining',
     bgURL: '/img/genesis_01.webp',
     type: 'OT',
     mainStream: '창세기 1-11장',
@@ -34,7 +34,7 @@ const eras = ref([
     id: 2,
     title: '족장 시대',
     subtitle: '한 사람을 통한 언약',
-    bgKeyword: 'PATRIARCHS',
+    bgKeyword: 'patriarchs',
     bgURL: '/img/genesis_02.webp',
     type: 'OT',
     mainStream: '창세기 12-50장',
@@ -46,7 +46,7 @@ const eras = ref([
     id: 3,
     title: '출애굽/광야',
     subtitle: '구원과 율법',
-    bgKeyword: 'EXODUS',
+    bgKeyword: 'exodus',
     bgURL: '/img/exodus.webp',
     type: 'OT',
     mainStream: '출애굽기, 민수기',
@@ -62,7 +62,7 @@ const eras = ref([
     id: 4,
     title: '정복/사사',
     subtitle: '정착과 혼란',
-    bgKeyword: 'CONQUEST',
+    bgKeyword: 'conquest',
     bgURL: '/img/joshua.webp',
     type: 'OT',
     mainStream: '여호수아, 사사기',
@@ -74,7 +74,7 @@ const eras = ref([
     id: 5,
     title: '단일 왕국',
     subtitle: '왕국의 영광',
-    bgKeyword: 'KINGDOM',
+    bgKeyword: 'kingdom',
     bgURL: '/img/david.webp',
     type: 'OT',
     mainStream: '사무엘상/하, 열왕기상(초반)',
@@ -90,7 +90,7 @@ const eras = ref([
     id: 6,
     title: '분열 왕국',
     subtitle: '분열과 선지자의 외침',
-    bgKeyword: 'DIVIDED',
+    bgKeyword: 'divided',
     bgURL: '/img/genesis_01.webp',
     type: 'OT',
     mainStream: '열왕기상/하',
@@ -106,7 +106,7 @@ const eras = ref([
     id: 7,
     title: '포로 시대',
     subtitle: '심판과 남은 자',
-    bgKeyword: 'EXILE',
+    bgKeyword: 'exile',
     bgURL: '/img/genesis_01.webp',
     type: 'OT',
     mainStream: '열왕기하(후반), 다니엘',
@@ -122,7 +122,7 @@ const eras = ref([
     id: 8,
     title: '포로 귀환',
     subtitle: '재건과 침묵',
-    bgKeyword: 'RETURN',
+    bgKeyword: 'return',
     bgURL: '/img/genesis_01.webp',
     type: 'OT',
     mainStream: '에스라, 느헤미야',
@@ -137,7 +137,7 @@ const eras = ref([
     id: 9,
     title: '복음 시대',
     subtitle: '왕의 오심',
-    bgKeyword: 'GOSPEL',
+    bgKeyword: 'gospel',
     bgURL: '/img/genesis_01.webp',
     type: 'NT',
     mainStream: '마태, 마가, 누가, 요한',
@@ -149,7 +149,7 @@ const eras = ref([
     id: 10,
     title: '교회 시대',
     subtitle: '복음의 확장',
-    bgKeyword: 'ACTS',
+    bgKeyword: 'acts',
     bgURL: '/img/genesis_01.webp',
     type: 'NT',
     mainStream: '사도행전',
@@ -167,6 +167,10 @@ const currentEra = computed(() => eras.value[currentEraIndex.value]);
 
 const toggleBooks = () => {
   isBooksVisible.value = !isBooksVisible.value;
+};
+
+const toggleNav = () => {
+  isNavOpen.value = !isNavOpen.value;
 };
 
 watch(currentEraIndex, () => {
@@ -196,7 +200,35 @@ watch(currentEraIndex, (newIndex) => {
     displayBgUrl.value = nextUrl;
   }
 });
+// 특정 시대로 스크롤 이동하는 함수
+const scrollToEra = (index) => {
+  isNavOpen.value = false; // 이동 시 메뉴 닫기
 
+  // 현재 화면 너비를 기준으로 모바일/데스크탑 판단
+  const isMobile = window.innerWidth < 768;
+
+  if (isMobile) {
+    // 모바일: 세로 스크롤
+    // .era-section 요소들을 찾아서 해당 인덱스의 위치로 이동
+    const sections = document.querySelectorAll('.era-section');
+    if (sections[index]) {
+      sections[index].scrollIntoView({ behavior: 'smooth' });
+    }
+  } else {
+    // 데스크탑: 가로 스크롤 (GSAP ScrollTrigger와 연동)
+    // ScrollTrigger의 전체 스크롤 길이와 비율을 계산하여 이동
+    const totalDistance = eras.value.length * 1000;
+    // index가 0이면 0, 마지막이면 100% 진행된 위치 계산
+    // wrapper가 핀(pin) 고정되기 시작하는 위치 + 진행률에 따른 거리
+    const progressRatio = index / (eras.value.length - 1);
+    const scrollPos = wrapper.value.offsetTop + progressRatio * totalDistance;
+
+    window.scrollTo({
+      top: scrollPos,
+      behavior: 'smooth',
+    });
+  }
+};
 // ScrollTrigger 인스턴스를 저장할 변수
 let mm = gsap.matchMedia();
 
@@ -268,19 +300,41 @@ onUnmounted(() => {
     <!-- Header -->
     <header class="header-bar">
       <h1 class="logo"><a href="/">BIBLE PANORAMA</a></h1>
-      <div class="header-controls">
+
+      <!-- 데스크탑에서는 헤더 중앙에 진행바 표시 -->
+      <div class="header-controls hidden-mobile">
         <div class="progress-track">
           <div class="progress-fill" :style="{ width: progress + '%' }"></div>
         </div>
         <span class="step-indicator">PART {{ currentEraIndex + 1 }}</span>
       </div>
+
+      <!-- 네비게이션 버튼 -->
+      <button class="nav-toggle-btn" @click="toggleNav">
+        <span v-if="!isNavOpen">MENU</span>
+        <span v-else>CLOSE</span>
+      </button>
+
+      <!-- 네비게이션 메뉴 (Overlay 형태) -->
+      <transition name="slide-fade">
+        <nav v-if="isNavOpen" class="main-nav">
+          <ul>
+            <li v-for="(era, index) in eras" :key="era.id" :class="{ active: currentEraIndex === index }">
+              <a href="#" @click.prevent="scrollToEra(index)">
+                <span class="nav-idx">{{ String(index + 1).padStart(2, '0') }}</span>
+                <span class="nav-title">{{ era.title }}</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </transition>
     </header>
 
     <!-- 1. Scroll Trigger Wrapper -->
     <div class="wrapper" ref="wrapper">
       <div class="horizontal-scroll-container" ref="container">
         <!-- 모바일에서는 width 스타일이 CSS로 제어되므로 인라인 스타일 제거 -->
-        <div v-for="era in eras" :key="'bg-' + era.id" class="era-section">
+        <div v-for="era in eras" :key="'bg-' + era.id" class="era-section" :id="era.bgKeyword">
           <div class="timeline-graphic"></div>
           <div class="bg-keyword-text">{{ era.bgKeyword }}</div>
           <div class="timeline-dot" :class="era.type"></div>
@@ -453,6 +507,81 @@ onUnmounted(() => {
       font-family: monospace;
     }
   }
+
+  /* 네비게이션 메뉴 스타일 */
+  .main-nav {
+    position: fixed;
+    top: 60px; /* 헤더 높이만큼 띄움 */
+    right: 1.5rem;
+    width: 240px;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    z-index: 55;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      li {
+        a {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          color: $text-secondary;
+          text-decoration: none;
+          border-radius: 0.5rem;
+          transition: all 0.2s;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+          }
+
+          .nav-idx {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: $text-muted;
+          }
+
+          .nav-title {
+            font-weight: 500;
+            font-size: 0.875rem;
+          }
+        }
+
+        &.active a {
+          background: $accent-color;
+          color: white;
+
+          .nav-idx {
+            color: rgba(255, 255, 255, 0.7);
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Nav Transition */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
 }
 
 /* Scroll Section */
