@@ -671,6 +671,10 @@ onUnmounted(() => {
       width: 100%;
       height: 100%;
       position: relative;
+
+      @include mobile {
+        display: none;
+      }
       &::before {
         content: '';
         display: block;
@@ -685,28 +689,12 @@ onUnmounted(() => {
         visibility: hidden;
         opacity: 0;
 
-        @include mobile {
-          animation: move-mobile infinite 5s linear;
-          width: 10px;
-          aspect-ratio: 20/150;
-          transform: translate(-50%, 0);
-        }
-
         @keyframes move {
           0% {
             left: 0;
           }
           100% {
             left: 100%;
-          }
-        }
-
-        @keyframes move-mobile {
-          0% {
-            top: 0;
-          }
-          100% {
-            top: 100%;
           }
         }
       }
