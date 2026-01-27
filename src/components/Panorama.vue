@@ -83,8 +83,11 @@ const eras = ref([
     characters: ['다윗', '솔로몬'],
     relatedBooks: [
       { name: '시편', category: '시가서', desc: '다윗이 쓴 수많은 찬양과 기도', bgURL: '' },
-      { name: '잠언/전도서/아가', category: '시가서', desc: '솔로몬의 지혜와 사랑의 노래', bgURL: '' },
-      { name: '역대상/하', category: '역사서', desc: '제사장적 관점에서 다시 기록된 왕들의 역사', bgURL: '' },
+      { name: '잠언', category: '시가서', desc: '솔로몬의 지혜의 말씀', bgURL: '' },
+      { name: '전도서', category: '시가서', desc: '해 아래 인생의 허무함과 하나님 경외', bgURL: '' },
+      { name: '아가', category: '시가서', desc: '솔로몬의 사랑의 노래', bgURL: '' },
+      { name: '역대상', category: '역사서', desc: '아담부터 다윗까지의 계보와 역사', bgURL: '' },
+      { name: '역대하', category: '역사서', desc: '솔로몬부터 포로기까지의 유다 왕국 역사', bgURL: '' },
     ],
   },
   {
@@ -98,9 +101,16 @@ const eras = ref([
     detail: '나라가 남북으로 갈라집니다. 왕들의 타락이 깊어질수록 하나님은 수많은 선지자를 보내어 심판을 경고하고 회개를 촉구합니다.',
     characters: ['엘리야', '히스기야'],
     relatedBooks: [
-      { name: '호세아/아모스/요나', category: '북이스라엘 예언', desc: '북이스라엘의 멸망을 경고한 선지서들', bgURL: '' },
-      { name: '이사야/미가', category: '남유다 예언', desc: '남유다의 죄악 지적과 메시아 예언', bgURL: '' },
-      { name: '요엘/오바댜', category: '예언서', desc: '주변국 심판과 여호와의 날 경고', bgURL: '' },
+      { name: '호세아', category: '북이스라엘 예언', desc: '음란한 아내 고멜을 통한 하나님의 사랑', bgURL: '' },
+      { name: '아모스', category: '북이스라엘 예언', desc: '공의를 잃은 이스라엘에 대한 심판 경고', bgURL: '' },
+      { name: '요나', category: '북이스라엘 예언', desc: '니느웨로 파송된 선지자', bgURL: '' },
+      { name: '이사야', category: '남유다 예언', desc: '메시아 예언과 구원의 약속', bgURL: '' },
+      { name: '미가', category: '남유다 예언', desc: '베들레헴 탄생 예언과 정의', bgURL: '' },
+      { name: '요엘', category: '남유다 예언', desc: '메뚜기 재앙과 여호와의 날', bgURL: '' },
+      { name: '오바댜', category: '남유다 예언', desc: '에돔의 멸망 예언', bgURL: '' },
+      { name: '나훔', category: '남유다 예언', desc: '니느웨(앗수르)의 멸망 선포', bgURL: '' },
+      { name: '하박국', category: '남유다 예언', desc: '의인의 믿음과 하나님의 주권', bgURL: '' },
+      { name: '스바냐', category: '남유다 예언', desc: '여호와의 날의 심판과 구원', bgURL: '' },
     ],
   },
   {
@@ -114,9 +124,10 @@ const eras = ref([
     detail: '결국 예루살렘은 함락되고 백성들은 바벨론으로 끌려갑니다. 나라 잃은 슬픔 속에서도 하나님은 다니엘, 에스겔 등을 통해 회복을 약속하십니다.',
     characters: ['다니엘', '에스겔'],
     relatedBooks: [
-      { name: '예레미야/애가', category: '예언서', desc: '눈물의 선지자가 본 멸망과 새 언약', bgURL: '' },
-      { name: '에스겔', category: '예언서', desc: '포로지 그발 강가에서 본 환상과 회복', bgURL: '' },
-      { name: '에스더', category: '역사서', desc: '페르시아 제국 내 유대인 몰살 위기에서의 구원', bgURL: '' },
+      { name: '예레미야', category: '예언서', desc: '눈물의 선지자, 새 언약의 약속', bgURL: '' },
+      { name: '예레미야애가', category: '예언서', desc: '예루살렘 멸망에 대한 슬픈 노래', bgURL: '' },
+      { name: '에스겔', category: '예언서', desc: '포로민들에게 보인 환상과 회복', bgURL: '' },
+      { name: '에스더', category: '역사서', desc: '죽으면 죽으리이다, 민족 구원', bgURL: '' },
     ],
   },
   {
@@ -130,8 +141,9 @@ const eras = ref([
     detail: '고레스 칙령으로 3차에 걸쳐 본국으로 돌아옵니다. 스룹바벨(성전), 에스라(말씀), 느헤미야(성벽)가 무너진 이스라엘을 재건합니다.',
     characters: ['에스라', '느헤미야'],
     relatedBooks: [
-      { name: '학개/스가랴', category: '예언서', desc: '성전 재건을 독려한 선지자들', bgURL: '' },
-      { name: '말라기', category: '예언서', desc: '구약의 마지막 경고와 침묵의 시작', bgURL: '' },
+      { name: '학개', category: '예언서', desc: '성전 건축을 독려함', bgURL: '' },
+      { name: '스가랴', category: '예언서', desc: '성전 재건과 메시아 예언', bgURL: '' },
+      { name: '말라기', category: '예언서', desc: '십일조와 형식적 예배 책망, 침묵기 직전', bgURL: '' },
     ],
   },
   {
@@ -157,8 +169,27 @@ const eras = ref([
     detail: '성령 강림으로 교회가 시작됩니다. 베드로와 바울을 통해 예루살렘에서 시작된 복음이 로마 제국 전체로 뻗어나가는 역동적인 역사입니다.',
     characters: ['베드로', '바울'],
     relatedBooks: [
-      { name: '바울 서신서', category: '서신서', desc: '로마서, 고린도전후서, 갈라디아서 등 전도 여행 중 보낸 편지들' },
-      { name: '공동 서신서', category: '서신서', desc: '야고보서, 베드로전후서, 요한서신 등', bgURL: '' },
+      { name: '로마서', category: '바울서신', desc: '이신칭의 복음의 진수', bgURL: '' },
+      { name: '고린도전서', category: '바울서신', desc: '교회 문제들에 대한 답변과 사랑장', bgURL: '' },
+      { name: '고린도후서', category: '바울서신', desc: '바울의 사도직 변호와 위로', bgURL: '' },
+      { name: '갈라디아서', category: '바울서신', desc: '율법이 아닌 믿음으로 얻는 구원', bgURL: '' },
+      { name: '에베소서', category: '바울서신', desc: '교회론과 성도의 연합', bgURL: '' },
+      { name: '빌립보서', category: '바울서신', desc: '옥중에서 보내는 기쁨의 편지', bgURL: '' },
+      { name: '골로새서', category: '바울서신', desc: '그리스도의 탁월성', bgURL: '' },
+      { name: '데살로니가전서', category: '바울서신', desc: '재림에 대한 소망', bgURL: '' },
+      { name: '데살로니가후서', category: '바울서신', desc: '종말과 적그리스도에 대한 교훈', bgURL: '' },
+      { name: '디모데전서', category: '목회서신', desc: '목회자 디모데를 향한 교훈', bgURL: '' },
+      { name: '디모데후서', category: '목회서신', desc: '바울의 유언과 같은 마지막 서신', bgURL: '' },
+      { name: '디도서', category: '목회서신', desc: '그레데 교회의 질서 확립', bgURL: '' },
+      { name: '빌레몬서', category: '바울서신', desc: '도망친 노예 오네시모를 위한 탄원', bgURL: '' },
+      { name: '히브리서', category: '공동서신', desc: '대제사장 되신 예수 그리스도의 우월성', bgURL: '' },
+      { name: '야고보서', category: '공동서신', desc: '행함이 있는 믿음', bgURL: '' },
+      { name: '베드로전서', category: '공동서신', desc: '고난 중에 있는 성도 위로', bgURL: '' },
+      { name: '베드로후서', category: '공동서신', desc: '거짓 교사에 대한 경고', bgURL: '' },
+      { name: '요한일서', category: '공동서신', desc: '하나님은 사랑이시라', bgURL: '' },
+      { name: '요한이서', category: '공동서신', desc: '진리 안에서 행하라', bgURL: '' },
+      { name: '요한삼서', category: '공동서신', desc: '가이오를 향한 칭찬', bgURL: '' },
+      { name: '유다서', category: '공동서신', desc: '거짓 교사들에 대한 심판 경고', bgURL: '' },
       { name: '요한계시록', category: '예언서', desc: '역사의 마지막과 새 하늘 새 땅의 환상', bgURL: '' },
     ],
   },
@@ -996,7 +1027,7 @@ onUnmounted(() => {
       color: $text-primary;
       font-weight: 600;
       transition: all 0.3s;
-      box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.5);
+      box-shadow: 0 10px 15px -3px rgba($color: $ot-color, $alpha: 0.35);
       border: none;
       cursor: pointer;
 
@@ -1006,6 +1037,7 @@ onUnmounted(() => {
 
       &.NT {
         background: linear-gradient(to right, $nt-color, #9f2a3d);
+        box-shadow: 0 10px 15px -3px rgba($color: $nt-color, $alpha: 0.35);
         &:hover {
           background: linear-gradient(to right, darken($nt-color, 5%), darken(#9f2a3d, 5%));
         }
@@ -1147,6 +1179,7 @@ onUnmounted(() => {
   .books-grid-wrapper {
     overflow-y: auto;
     padding-right: 0.5rem;
+    max-height: 80%;
   }
 
   .books-grid {
@@ -1245,6 +1278,7 @@ onUnmounted(() => {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        line-height: 1.25;
         @include mobile {
           font-size: 12px;
         }
