@@ -7,6 +7,7 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 const wrapper = ref(null);
+const container = ref(null); // container ref가 누락되어 있어서 추가했습니다 (template에서 참조중)
 const currentEraIndex = ref(0);
 const isBooksVisible = ref(false);
 const progress = ref(0);
@@ -180,7 +181,7 @@ watch(currentEraIndex, () => {
 // 시대가 바뀔 때 배경 이미지 페이드 효과 적용 (GSAP)
 watch(currentEraIndex, (newIndex) => {
   const nextEra = eras.value[newIndex];
-  const nextUrl = nextEra.bgURL || '/img/genesis01.webp';
+  const nextUrl = nextEra.bgURL || '/img/genesis_01.webp';
 
   // 이미지가 같으면 애니메이션 스킵
   if (displayBgUrl.value === nextUrl) return;
@@ -200,6 +201,7 @@ watch(currentEraIndex, (newIndex) => {
     displayBgUrl.value = nextUrl;
   }
 });
+
 // 특정 시대로 스크롤 이동하는 함수
 const scrollToEra = (index) => {
   isNavOpen.value = false; // 이동 시 메뉴 닫기
@@ -229,12 +231,26 @@ const scrollToEra = (index) => {
     });
   }
 };
+
+// [이미지 프리로딩 함수]
+const preloadImages = () => {
+  eras.value.forEach((era) => {
+    if (era.bgURL) {
+      const img = new Image();
+      img.src = era.bgURL;
+    }
+  });
+};
+
 // ScrollTrigger 인스턴스를 저장할 변수
 let mm = gsap.matchMedia();
 
 onMounted(() => {
+  // 1. 이미지 프리로딩 시작
+  preloadImages();
+
   // 초기 이미지 설정 (데이터 로드 후)
-  displayBgUrl.value = eras.value[0].bgURL || '/img/genesis01.webp';
+  displayBgUrl.value = eras.value[0].bgURL || '/img/genesis_01.webp';
 
   const sections = gsap.utils.toArray('.era-section');
 
