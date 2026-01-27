@@ -12,12 +12,13 @@ const currentEraIndex = ref(0);
 const isBooksVisible = ref(false);
 const progress = ref(0);
 const isNavOpen = ref(false); // 네비게이션 메뉴 토글 상태
-// 배경 이미지 제어를 위한 ref 추가
-const bgImage = ref(null);
-// 현재 표시 중인 배경 이미지 URL (초기값 설정)
-const displayBgUrl = ref('/img/genesis01.webp');
 
-// 데이터 (bgURL 중복 등 정리)
+// 배경 이미지 제어를 위한 ref
+const bgImage = ref(null);
+// 현재 표시 중인 배경 이미지 URL
+const displayBgUrl = ref('/img/genesis_01.webp');
+
+// 데이터 (관련 성경 낱권 분리 완료)
 const eras = ref([
   {
     id: 1,
@@ -209,7 +210,7 @@ watch(currentEraIndex, () => {
   isBooksVisible.value = false;
 });
 
-// 시대가 바뀔 때 배경 이미지 페이드 효과 적용 (GSAP)
+// 배경 이미지 페이드 로직 개선 (이미지 로드 후 교체)
 watch(currentEraIndex, (newIndex) => {
   const nextEra = eras.value[newIndex];
   const nextUrl = nextEra.bgURL || '/img/genesis_01.webp';
@@ -217,19 +218,38 @@ watch(currentEraIndex, (newIndex) => {
   // 이미지가 같으면 애니메이션 스킵
   if (displayBgUrl.value === nextUrl) return;
 
-  if (bgImage.value) {
-    // 이전 애니메이션이 있다면 중단
-    gsap.killTweensOf(bgImage.value);
+  // 새 이미지 미리 로드
+  const imgLoader = new Image();
+  imgLoader.src = nextUrl;
 
-    // 타임라인 생성: 사라짐 -> 이미지 교체 -> 나타남
-    const tl = gsap.timeline();
-    tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' })
-      .call(() => {
-        displayBgUrl.value = nextUrl;
-      })
-      .to(bgImage.value, { opacity: 0.25, duration: 0.5, ease: 'power1.in', delay: 0.05 });
+  // 먼저 기존 이미지를 페이드 아웃 시작
+  if (bgImage.value) {
+    gsap.to(bgImage.value, { 
+      opacity: 0, 
+      duration: 0.3, 
+      onComplete: () => {
+        // 이미지가 로드되었는지 확인하고 교체 함수 실행
+        if (imgLoader.complete) {
+          swapAndFadeIn();
+        } else {
+          imgLoader.onload = swapAndFadeIn;
+        }
+      } 
+    });
   } else {
+    // 초기 상태 등에서는 바로 로드 대기
+    imgLoader.onload = swapAndFadeIn;
+  }
+
+  function swapAndFadeIn() {
     displayBgUrl.value = nextUrl;
+    // DOM 업데이트 후 페이드 인
+    // setTimeout은 Vue의 DOM 업데이트 사이클을 고려한 짧은 지연입니다.
+    setTimeout(() => {
+      if (bgImage.value) {
+        gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5 });
+      }
+    }, 50);
   }
 });
 
