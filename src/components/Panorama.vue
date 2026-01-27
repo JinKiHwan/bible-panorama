@@ -745,8 +745,8 @@ onUnmounted(() => {
       &::before {
         content: '';
         display: block;
-        width: 70px;
-        aspect-ratio: 150/20;
+        width: 50px;
+        aspect-ratio: 200/10;
         transform: translateY(-50%);
         border-radius: 50%;
         background-color: $text-primary;
