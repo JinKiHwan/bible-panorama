@@ -1464,6 +1464,19 @@ onUnmounted(() => {
         max-height: 85%;
         overflow-y: auto;
         padding-right: 0.5rem;
+
+        &::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent; /* 스크롤바 뒷 배경 색상 */
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: rgba($color: $ot-color, $alpha: 1.0);
+            border-radius: 12px 12px 12px 12px;
+        }
     }
 
     .books-grid {
