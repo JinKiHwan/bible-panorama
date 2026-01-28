@@ -1,4 +1,6 @@
 <script setup>
+import HamburgerIcon from '@/components/icons/HamburgerIcon.vue';
+import CloseIcon from '@/components/icons/CloseIcon.vue';
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
@@ -541,8 +543,12 @@ onUnmounted(() => {
             </div>
 
             <button class="nav-toggle-btn" @click="toggleNav">
-                <span v-if="!isNavOpen">MENU</span>
-                <span v-else>CLOSE</span>
+                <span v-if="!isNavOpen">
+                    <HamburgerIcon />
+                </span>
+                <span v-else>
+                    <CloseIcon />
+                </span>
             </button>
 
             <transition name="slide-fade">
@@ -735,6 +741,10 @@ onUnmounted(() => {
     mix-blend-mode: difference;
     color: white;
 
+    @include mobile{
+        mix-blend-mode: normal;
+    }
+
     .logo {
         font-size: 1.25rem;
         font-weight: 700;
@@ -744,7 +754,7 @@ onUnmounted(() => {
         }
 
         a {
-            background-image:url('/img/common/gradient.webp');
+            background-image: url('/img/common/gradient.webp');
             background-repeat: no-repeat;
             background-position: center center;
             background-size: cover;
@@ -779,7 +789,8 @@ onUnmounted(() => {
 
             .progress-fill {
                 height: 100%;
-                background-color: white;
+                // background-color: white;
+                background: url('/img/common/gradient2.webp') no-repeat center center/cover;
                 transition: width 0.3s;
             }
         }
@@ -792,13 +803,13 @@ onUnmounted(() => {
             }
         }
     }
-    
-    .nav-toggle-btn{
-      font-size: 1rem;
 
-      @include mobile{
-        font-size: 12px;
-      }
+    .nav-toggle-btn {
+        font-size: 1rem;
+
+        @include mobile {
+            font-size: 12px;
+        }
     }
 
     /* 네비게이션 메뉴 스타일 */
@@ -815,6 +826,11 @@ onUnmounted(() => {
         z-index: 55;
         max-height: calc(100vh - 80px);
         overflow-y: auto;
+
+        @include mobile {
+            top: 45px;
+            background: rgba($color: #1e293b, $alpha: 0.9);
+        }
 
         ul {
             list-style: none;
@@ -844,11 +860,19 @@ onUnmounted(() => {
                         font-family: monospace;
                         font-size: 0.75rem;
                         color: $text-muted;
+
+                        @include mobile {
+                            font-size: 12px;
+                        }
                     }
 
                     .nav-title {
                         font-weight: 500;
                         font-size: 0.875rem;
+
+                        @include mobile {
+                            font-size: 14px;
+                        }
                     }
                 }
 
@@ -857,12 +881,15 @@ onUnmounted(() => {
                     color: lighten($ot-color, 20%);
 
                     .nav-idx {
-                        color: rgba(255, 255, 255, 0.7);
+                        color: rgba($ot-color, 0.7);
                     }
                 }
                 &.active.NT a {
                     background-color: rgba($nt-color, 0.2);
                     color: lighten($nt-color, 20%);
+                    .nav-idx {
+                        color: rgba($nt-color, 0.7);
+                    }
                 }
             }
         }
