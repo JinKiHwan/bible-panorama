@@ -7,7 +7,6 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 const wrapper = ref(null);
-const container = ref(null);
 const currentEraIndex = ref(0);
 const isBooksVisible = ref(false);
 const progress = ref(0);
@@ -23,180 +22,341 @@ const displayBgUrl = ref('/img/genesis_01.webp');
 
 // 데이터 (관련 성경 낱권 분리 완료)
 const eras = ref([
-  {
-    id: 1,
-    title: '창조 시대',
-    subtitle: '시작의 역사',
-    bgKeyword: 'beggining',
-    bgURL: '/img/genesis_01.webp',
-    type: 'OT',
-    mainStream: '창세기 1-11장',
-    detail: '역사의 서막입니다. 하나님께서 천지를 창조하시고, 인간의 타락과 홍수 심판, 바벨탑 사건을 통해 인류가 전 세계로 흩어지게 된 배경을 다룹니다.',
-    characters: ['아담', '하와', '노아'],
-    relatedBooks: [],
-  },
-  {
-    id: 2,
-    title: '족장 시대',
-    subtitle: '한 사람을 통한 언약',
-    bgKeyword: 'patriarchs',
-    bgURL: '/img/genesis_02.webp',
-    type: 'OT',
-    mainStream: '창세기 12-50장',
-    detail: '하나님께서 아브라함을 택하여 믿음의 조상으로 세우십니다. 이삭, 야곱, 요셉 4대의 족장을 통해 이스라엘이라는 민족 공동체의 기초가 세워집니다.',
-    characters: ['아브라함', '이삭', '야곱', '요셉'],
-    relatedBooks: [{ name: '욥기', category: '시가서', desc: '족장 시대 즈음 동방의 의인 욥이 겪은 고난과 하나님의 주권에 대한 기록', bgURL: '' }],
-  },
-  {
-    id: 3,
-    title: '출애굽/광야',
-    subtitle: '구원과 율법',
-    bgKeyword: 'exodus',
-    bgURL: '/img/exodus.webp',
-    type: 'OT',
-    mainStream: '출애굽기, 민수기',
-    detail: '400년 노예 생활에서의 해방(출애굽기)과 약속의 땅을 향한 40년의 여정(민수기)입니다. 이 과정에서 하나님의 백성으로 거듭나는 법(레위기, 신명기)을 받습니다.',
-    characters: ['모세', '아론'],
-    relatedBooks: [
-      { name: '레위기', category: '율법서', desc: '시내산에서 받은 제사법과 거룩한 삶의 지침', bgURL: '' },
-      { name: '신명기', category: '율법서', desc: '가나안 입성 직전, 모세가 다음 세대에게 전한 고별 설교', bgURL: '' },
-      { name: '시편 (모세)', category: '시가서', desc: '시편 90편 등 모세의 기도', bgURL: '' },
-    ],
-  },
-  {
-    id: 4,
-    title: '정복/사사',
-    subtitle: '정착과 혼란',
-    bgKeyword: 'conquest',
-    bgURL: '/img/joshua.webp',
-    type: 'OT',
-    mainStream: '여호수아, 사사기',
-    detail: '약속의 땅 가나안을 정복하고 분배받습니다(여호수아). 그러나 이후 왕이 없던 시대(사사기)에는 타락과 구원이 반복되는 악순환을 겪습니다.',
-    characters: ['여호수아', '기드온', '삼손'],
-    relatedBooks: [{ name: '룻기', category: '역사서', desc: '사사 시대의 어두움 속에 빛나는 다윗의 조상 룻의 이야기', bgURL: '' }],
-  },
-  {
-    id: 5,
-    title: '단일 왕국',
-    subtitle: '왕국의 영광',
-    bgKeyword: 'kingdom',
-    bgURL: '/img/david.webp',
-    type: 'OT',
-    mainStream: '사무엘상/하, 열왕기상(초반)',
-    detail: '사무엘이 왕정 시대를 엽니다. 사울의 실패 후 다윗이 왕국을 견고히 하고, 솔로몬이 성전을 건축하며 최고의 번영을 누립니다.',
-    characters: ['다윗', '솔로몬'],
-    relatedBooks: [
-      { name: '시편', category: '시가서', desc: '다윗이 쓴 수많은 찬양과 기도', bgURL: '' },
-      { name: '잠언', category: '시가서', desc: '솔로몬의 지혜의 말씀', bgURL: '' },
-      { name: '전도서', category: '시가서', desc: '해 아래 인생의 허무함과 하나님 경외', bgURL: '' },
-      { name: '아가', category: '시가서', desc: '솔로몬의 사랑의 노래', bgURL: '' },
-      { name: '역대상', category: '역사서', desc: '아담부터 다윗까지의 계보와 역사', bgURL: '' },
-      { name: '역대하', category: '역사서', desc: '솔로몬부터 포로기까지의 유다 왕국 역사', bgURL: '' },
-    ],
-  },
-  {
-    id: 6,
-    title: '분열 왕국',
-    subtitle: '분열과 선지자의 외침',
-    bgKeyword: 'divided',
-    bgURL: '/img/elijah.webp',
-    type: 'OT',
-    mainStream: '열왕기상/하',
-    detail: '나라가 남북으로 갈라집니다. 왕들의 타락이 깊어질수록 하나님은 수많은 선지자를 보내어 심판을 경고하고 회개를 촉구합니다.',
-    characters: ['엘리야', '히스기야'],
-    relatedBooks: [
-      { name: '호세아', category: '북이스라엘 예언', desc: '음란한 아내 고멜을 통한 하나님의 사랑', bgURL: '' },
-      { name: '아모스', category: '북이스라엘 예언', desc: '공의를 잃은 이스라엘에 대한 심판 경고', bgURL: '' },
-      { name: '요나', category: '북이스라엘 예언', desc: '니느웨로 파송된 선지자', bgURL: '' },
-      { name: '이사야', category: '남유다 예언', desc: '메시아 예언과 구원의 약속', bgURL: '' },
-      { name: '미가', category: '남유다 예언', desc: '베들레헴 탄생 예언과 정의', bgURL: '' },
-      { name: '요엘', category: '남유다 예언', desc: '메뚜기 재앙과 여호와의 날', bgURL: '' },
-      { name: '오바댜', category: '남유다 예언', desc: '에돔의 멸망 예언', bgURL: '' },
-      { name: '나훔', category: '남유다 예언', desc: '니느웨(앗수르)의 멸망 선포', bgURL: '' },
-      { name: '하박국', category: '남유다 예언', desc: '의인의 믿음과 하나님의 주권', bgURL: '' },
-      { name: '스바냐', category: '남유다 예언', desc: '여호와의 날의 심판과 구원', bgURL: '' },
-    ],
-  },
-  {
-    id: 7,
-    title: '포로 시대',
-    subtitle: '심판과 남은 자',
-    bgKeyword: 'exile',
-    bgURL: '/img/daniel.webp',
-    type: 'OT',
-    mainStream: '열왕기하(후반), 다니엘',
-    detail: '결국 예루살렘은 함락되고 백성들은 바벨론으로 끌려갑니다. 나라 잃은 슬픔 속에서도 하나님은 다니엘, 에스겔 등을 통해 회복을 약속하십니다.',
-    characters: ['다니엘', '에스겔'],
-    relatedBooks: [
-      { name: '예레미야', category: '예언서', desc: '눈물의 선지자, 새 언약의 약속', bgURL: '' },
-      { name: '예레미야애가', category: '예언서', desc: '예루살렘 멸망에 대한 슬픈 노래', bgURL: '' },
-      { name: '에스겔', category: '예언서', desc: '포로민들에게 보인 환상과 회복', bgURL: '' },
-      { name: '에스더', category: '역사서', desc: '죽으면 죽으리이다, 민족 구원', bgURL: '' },
-    ],
-  },
-  {
-    id: 8,
-    title: '포로 귀환',
-    subtitle: '재건과 침묵',
-    bgKeyword: 'return',
-    bgURL: '/img/nehemiah.webp',
-    type: 'OT',
-    mainStream: '에스라, 느헤미야',
-    detail: '고레스 칙령으로 3차에 걸쳐 본국으로 돌아옵니다. 스룹바벨(성전), 에스라(말씀), 느헤미야(성벽)가 무너진 이스라엘을 재건합니다.',
-    characters: ['에스라', '느헤미야'],
-    relatedBooks: [
-      { name: '학개', category: '예언서', desc: '성전 건축을 독려함', bgURL: '' },
-      { name: '스가랴', category: '예언서', desc: '성전 재건과 메시아 예언', bgURL: '' },
-      { name: '말라기', category: '예언서', desc: '십일조와 형식적 예배 책망, 침묵기 직전', bgURL: '' },
-    ],
-  },
-  {
-    id: 9,
-    title: '복음 시대',
-    subtitle: '왕의 오심',
-    bgKeyword: 'gospel',
-    bgURL: '/img/jesus.webp',
-    type: 'NT',
-    mainStream: '마태, 마가, 누가, 요한',
-    detail: '400년의 침묵을 깨고 예수 그리스도가 오십니다. 공생애 사역, 십자가 죽음, 그리고 부활을 통해 구약을 완성하고 새 시대를 엽니다.',
-    characters: ['예수 그리스도', '제자들'],
-    relatedBooks: [],
-  },
-  {
-    id: 10,
-    title: '교회 시대',
-    subtitle: '복음의 확장',
-    bgKeyword: 'acts',
-    bgURL: '/img/acts.webp',
-    type: 'NT',
-    mainStream: '사도행전',
-    detail: '성령 강림으로 교회가 시작됩니다. 베드로와 바울을 통해 예루살렘에서 시작된 복음이 로마 제국 전체로 뻗어나가는 역동적인 역사입니다.',
-    characters: ['베드로', '바울'],
-    relatedBooks: [
-      { name: '로마서', category: '바울서신', desc: '이신칭의 복음의 진수', bgURL: '' },
-      { name: '고린도전서', category: '바울서신', desc: '교회 문제들에 대한 답변과 사랑장', bgURL: '' },
-      { name: '고린도후서', category: '바울서신', desc: '바울의 사도직 변호와 위로', bgURL: '' },
-      { name: '갈라디아서', category: '바울서신', desc: '율법이 아닌 믿음으로 얻는 구원', bgURL: '' },
-      { name: '에베소서', category: '바울서신', desc: '교회론과 성도의 연합', bgURL: '' },
-      { name: '빌립보서', category: '바울서신', desc: '옥중에서 보내는 기쁨의 편지', bgURL: '' },
-      { name: '골로새서', category: '바울서신', desc: '그리스도의 탁월성', bgURL: '' },
-      { name: '데살로니가전서', category: '바울서신', desc: '재림에 대한 소망', bgURL: '' },
-      { name: '데살로니가후서', category: '바울서신', desc: '종말과 적그리스도에 대한 교훈', bgURL: '' },
-      { name: '디모데전서', category: '목회서신', desc: '목회자 디모데를 향한 교훈', bgURL: '' },
-      { name: '디모데후서', category: '목회서신', desc: '바울의 유언과 같은 마지막 서신', bgURL: '' },
-      { name: '디도서', category: '목회서신', desc: '그레데 교회의 질서 확립', bgURL: '' },
-      { name: '빌레몬서', category: '바울서신', desc: '도망친 노예 오네시모를 위한 탄원', bgURL: '' },
-      { name: '히브리서', category: '공동서신', desc: '대제사장 되신 예수 그리스도의 우월성', bgURL: '' },
-      { name: '야고보서', category: '공동서신', desc: '행함이 있는 믿음', bgURL: '' },
-      { name: '베드로전서', category: '공동서신', desc: '고난 중에 있는 성도 위로', bgURL: '' },
-      { name: '베드로후서', category: '공동서신', desc: '거짓 교사에 대한 경고', bgURL: '' },
-      { name: '요한일서', category: '공동서신', desc: '하나님은 사랑이시라', bgURL: '' },
-      { name: '요한이서', category: '공동서신', desc: '진리 안에서 행하라', bgURL: '' },
-      { name: '요한삼서', category: '공동서신', desc: '가이오를 향한 칭찬', bgURL: '' },
-      { name: '유다서', category: '공동서신', desc: '거짓 교사들에 대한 심판 경고', bgURL: '' },
-      { name: '요한계시록', category: '예언서', desc: '역사의 마지막과 새 하늘 새 땅의 환상', bgURL: '' },
-    ],
-  },
+    {
+        id: 1,
+        title: '창조 시대',
+        subtitle: '시작의 역사',
+        bgKeyword: 'beggining',
+        bgURL: '/img/genesis_01.webp',
+        type: 'OT',
+        mainStream: '창세기 1-11장',
+        detail: '태초에 하나님께서 천지를 창조하시며 역사가 시작됩니다. 인간은 하나님의 형상으로 지음받았으나 선악과 사건으로 타락하고, 죄는 가인과 홍수, 바벨탑 사건을 거치며 전 인류로 확산됩니다. 이 시기는 세상의 시작과 인간 문제의 근원을 보여줍니다.',
+        characters: ['아담', '하와', '노아'],
+        relatedBooks: [],
+    },
+
+    {
+        id: 2,
+        title: '족장 시대',
+        subtitle: '한 사람을 통한 언약',
+        bgKeyword: 'patriarchs',
+        bgURL: '/img/genesis_02.webp',
+        type: 'OT',
+        mainStream: '창세기 12-50장',
+        detail: '하나님은 아브라함 한 사람을 부르셔서 민족과 구원의 역사를 시작하십니다. 이삭, 야곱, 요셉으로 이어지는 족장들의 삶 속에서 약속은 위기와 실패 속에서도 계승되며, 이스라엘 민족의 정체성과 언약의 기초가 세워집니다.',
+        characters: ['아브라함', '이삭', '야곱', '요셉'],
+        relatedBooks: [
+            {
+                name: '욥기',
+                category: '시가서',
+                desc: '의인 욥이 이유를 알 수 없는 극심한 고난을 겪으며 하나님의 공의와 주권을 질문합니다. 친구들의 논쟁과 하나님의 직접적인 응답을 통해, 고난의 원인보다 하나님을 신뢰하는 자리로 독자를 이끕니다.',
+                bgURL: '/img/job.webp',
+            },
+        ],
+    },
+
+    {
+        id: 3,
+        title: '출애굽/광야',
+        subtitle: '구원과 율법',
+        bgKeyword: 'exodus',
+        bgURL: '/img/exodus.webp',
+        type: 'OT',
+        mainStream: '출애굽기, 민수기',
+        detail: '이스라엘은 400년간의 애굽 노예 생활에서 해방되어 출애굽을 경험합니다. 이후 40년 광야 여정 속에서 불순종과 훈련을 반복하며, 하나님은 율법을 통해 백성의 정체성과 거룩한 삶의 기준을 세우십니다.',
+        characters: ['모세', '아론'],
+        relatedBooks: [
+            {
+                name: '레위기',
+                category: '율법서',
+                desc: '시내산에서 주어진 제사 규례와 정결 법을 통해 거룩하신 하나님과 죄인인 인간이 어떻게 관계할 수 있는지를 보여줍니다. 속죄, 제사장 직분, 일상 속 거룩이 핵심 주제입니다.',
+                bgURL: '/img/leviticus.webp',
+            },
+            {
+                name: '신명기',
+                category: '율법서',
+                desc: '가나안 입성 직전, 모세가 다음 세대에게 전한 고별 설교입니다. 광야의 역사를 되짚으며 율법의 의미를 다시 풀어 설명하고, “생명을 택하라”는 선택의 메시지로 마무리됩니다.',
+                bgURL: '/img/deuteronomy.webp',
+            },
+            {
+                name: '시편 (모세)',
+                category: '시가서',
+                desc: '대표적으로 시편 90편을 통해 인생의 덧없음과 하나님의 영원을 대조합니다. 광야의 현실 속에서 하나님을 영원한 거처로 고백하는 기도가 담겨 있습니다.',
+                bgURL: '/img/psalter_01.webp',
+            },
+        ],
+    },
+
+    {
+        id: 4,
+        title: '정복/사사',
+        subtitle: '정착과 혼란',
+        bgKeyword: 'conquest',
+        bgURL: '/img/joshua.webp',
+        type: 'OT',
+        mainStream: '여호수아, 사사기',
+        detail: '이스라엘은 여호수아의 인도로 가나안을 정복하고 땅을 분배받습니다. 그러나 왕이 없던 사사 시대에는 불순종과 우상숭배가 반복되며, 타락과 구원이 순환하는 혼란의 시기를 겪습니다.',
+        characters: ['여호수아', '기드온', '삼손'],
+        relatedBooks: [
+            {
+                name: '룻기',
+                category: '역사서',
+                desc: '사사 시대의 어둠 속에서 룻과 나오미의 헌신을 통해 하나님의 섭리가 조용히 이어짐을 보여줍니다. 이방 여인 룻이 다윗의 계보에 포함되는 은혜가 핵심입니다.',
+                bgURL: '/img/rute.webp',
+            },
+        ],
+    },
+
+    {
+        id: 5,
+        title: '단일 왕국',
+        subtitle: '왕국의 영광',
+        bgKeyword: 'kingdom',
+        bgURL: '/img/david.webp',
+        type: 'OT',
+        mainStream: '사무엘상/하, 열왕기상(초반)',
+        detail: '사무엘을 통해 왕정이 시작되고, 사울의 실패 이후 다윗이 왕국을 견고히 세웁니다. 솔로몬 시대에는 성전이 건축되며 정치·경제·영적 전성기를 맞이하지만, 그 안에 균열의 씨앗도 함께 자라납니다.',
+        characters: ['다윗', '솔로몬'],
+        relatedBooks: [
+            {
+                name: '시편',
+                category: '시가서',
+                desc: '다윗을 중심으로 한 찬양과 탄식, 회개와 감사의 기도 모음입니다. 개인의 내면과 공동체 예배가 함께 흐르며, 고난 속에서도 하나님을 신뢰하는 믿음의 언어를 배웁니다.',
+                bgURL: '/img/psalter_02.webp',
+            },
+            {
+                name: '잠언',
+                category: '시가서',
+                desc: '여호와를 경외함을 지혜의 시작으로 삼아 말과 관계, 돈과 선택의 원리를 가르칩니다. 일상의 삶을 지혜롭게 살아가는 실천적 교훈이 담겨 있습니다.',
+                bgURL: '/img/proverbs.webp',
+            },
+            {
+                name: '전도서',
+                category: '시가서',
+                desc: '지혜와 쾌락, 성취를 모두 경험한 후 인생의 허무를 직면합니다. 그럼에도 하나님을 경외하며 현재의 삶을 선물로 받아들이는 태도를 가르칩니다.',
+                bgURL: '/img/ecclesiastes.webp',
+            },
+            {
+                name: '아가',
+                category: '시가서',
+                desc: '남녀의 사랑을 시로 노래하며 갈망과 기다림, 결합과 회복을 묘사합니다. 사랑은 소유가 아닌 선택이며, 죽음처럼 강한 힘임을 선언합니다.',
+                bgURL: '/img/songsofsolonon.webp',
+            },
+            {
+                name: '역대상',
+                category: '역사서',
+                desc: '아담부터 다윗까지의 계보와 다윗 통치를 예배와 성전 준비의 관점에서 재조명합니다. 하나님의 나라가 무엇인지 신학적으로 정리한 역사서입니다.',
+                bgURL: '',
+            },
+            {
+                name: '역대하',
+                category: '역사서',
+                desc: '솔로몬 이후 남유다 왕들의 역사를 언약과 예배의 관점에서 기록합니다. 회개와 회복, 그리고 포로로 끝나는 역사 속에서도 소망을 남깁니다.',
+                bgURL: '',
+            },
+        ],
+    },
+
+    {
+        id: 6,
+        title: '분열 왕국',
+        subtitle: '분열과 선지자의 외침',
+        bgKeyword: 'divided',
+        bgURL: '/img/elijah.webp',
+        type: 'OT',
+        mainStream: '열왕기상/하',
+        detail: '솔로몬 사후 왕국은 북이스라엘과 남유다로 분열됩니다. 정치적 타락이 깊어질수록 하나님은 선지자들을 보내 심판과 회개, 그리고 회복의 소망을 외치게 하십니다.',
+        characters: ['엘리야', '히스기야'],
+        relatedBooks: [
+            {
+                name: '호세아',
+                category: '북이스라엘 예언',
+                desc: '불성실한 아내 고멜과의 결혼을 통해 우상숭배에 빠진 이스라엘을 고발합니다. 심판 속에서도 변하지 않는 하나님의 사랑과 회복의 약속이 흐릅니다.',
+                bgURL: '/img/hosea.webp',
+            },
+            {
+                name: '아모스',
+                category: '북이스라엘 예언',
+                desc: '형식적인 예배와 사회적 불의를 꾸짖으며 공의와 정의를 외칩니다. 신앙은 예배가 아니라 삶에서 증명되어야 함을 선포합니다.',
+                bgURL: '/img/amos.webp',
+            },
+            {
+                name: '요나',
+                category: '북이스라엘 예언',
+                desc: '원수 니느웨로 향하라는 명령을 거부한 요나의 도망과 회복 이야기입니다. 하나님의 자비가 이스라엘 밖까지 확장됨을 보여줍니다.',
+                bgURL: '/img/yona.webp',
+            },
+            {
+                name: '이사야',
+                category: '남유다 예언',
+                desc: '유다의 죄를 고발하면서도 메시아와 새 창조의 소망을 풍성하게 예언합니다. 임마누엘과 고난받는 종의 메시지가 중심입니다.',
+                bgURL: '/img/isaiah.webp',
+            },
+            {
+                name: '미가',
+                category: '남유다 예언',
+                desc: '지도자들의 탐욕을 책망하며 공의·인애·겸손의 삶을 제시합니다. 베들레헴에서 태어날 통치자 예언이 포함됩니다.',
+                bgURL: '/img/micah.webp',
+            },
+            {
+                name: '요엘',
+                category: '남유다 예언',
+                desc: '메뚜기 재앙을 여호와의 날로 해석하며 회개를 촉구합니다. 성령을 만민에게 부어주실 약속이 담겨 있습니다.',
+                bgURL: '',
+            },
+            {
+                name: '오바댜',
+                category: '남유다 예언',
+                desc: '형제 유다의 환난을 조롱한 에돔을 향한 심판 선언입니다. 교만한 권세는 반드시 무너진다는 메시지를 전합니다.',
+                bgURL: '',
+            },
+            {
+                name: '나훔',
+                category: '남유다 예언',
+                desc: '잔혹한 제국 앗수르의 수도 니느웨 멸망을 선포하며, 악의 권력이 영원하지 않음을 증언합니다.',
+                bgURL: '',
+            },
+            {
+                name: '하박국',
+                category: '남유다 예언',
+                desc: '악인이 형통하는 현실을 질문하며 하나님의 응답을 기다립니다. “의인은 믿음으로 산다”는 신앙 고백으로 마무리됩니다.',
+                bgURL: '',
+            },
+            {
+                name: '스바냐',
+                category: '남유다 예언',
+                desc: '여호와의 날의 심판을 선포하면서도 남은 자를 통한 회복과 기쁨의 약속을 전합니다.',
+                bgURL: '',
+            },
+        ],
+    },
+
+    {
+        id: 7,
+        title: '포로 시대',
+        subtitle: '심판과 남은 자',
+        bgKeyword: 'exile',
+        bgURL: '/img/daniel.webp',
+        type: 'OT',
+        mainStream: '열왕기하(후반), 다니엘',
+        detail: '예루살렘은 함락되고 백성은 바벨론으로 끌려갑니다. 나라를 잃은 상황에서도 하나님은 다니엘과 선지자들을 통해 여전히 역사의 주권자이심을 드러내십니다.',
+        characters: ['다니엘', '에스겔'],
+        relatedBooks: [
+            {
+                name: '예레미야',
+                category: '예언서',
+                desc: '멸망 직전의 유다에 끝까지 회개를 외친 눈물의 선지자 이야기입니다. 심판 속에서도 새 언약과 회복의 소망을 전합니다.',
+                bgURL: '',
+            },
+            {
+                name: '예레미야애가',
+                category: '예언서',
+                desc: '예루살렘 멸망을 애도하는 시로, 절망 속에서도 하나님의 긍휼을 붙드는 신앙을 보여줍니다.',
+                bgURL: '',
+            },
+            {
+                name: '에스겔',
+                category: '예언서',
+                desc: '포로지에서 환상과 상징을 통해 심판과 회복을 선포합니다. 마른 뼈 환상은 재창조의 희망을 상징합니다.',
+                bgURL: '',
+            },
+            {
+                name: '에스더',
+                category: '역사서',
+                desc: '페르시아 제국에서 유다 민족이 멸절 위기에 처했을 때, 하나님의 보이지 않는 섭리로 구원이 이루어지는 이야기입니다.',
+                bgURL: '',
+            },
+        ],
+    },
+
+    {
+        id: 8,
+        title: '포로 귀환',
+        subtitle: '재건과 침묵',
+        bgKeyword: 'return',
+        bgURL: '/img/nehemiah.webp',
+        type: 'OT',
+        mainStream: '에스라, 느헤미야',
+        detail: '고레스 칙령으로 포로들이 귀환하며 성전과 성벽, 공동체가 재건됩니다. 외형은 회복되지만 영적 갈증 속에서 메시아를 기다리는 침묵의 시기로 이어집니다.',
+        characters: ['에스라', '느헤미야'],
+        relatedBooks: [
+            {
+                name: '학개',
+                category: '예언서',
+                desc: '성전 재건을 미루는 백성을 책망하며 하나님의 집을 우선순위에 둘 것을 촉구합니다.',
+                bgURL: '',
+            },
+            {
+                name: '스가랴',
+                category: '예언서',
+                desc: '환상과 상징을 통해 성전 재건을 격려하고 장차 오실 왕에 대한 메시아적 소망을 전합니다.',
+                bgURL: '',
+            },
+            {
+                name: '말라기',
+                category: '예언서',
+                desc: '형식적 예배와 무너진 언약을 책망하며, 주의 길을 예비할 자의 오심을 예언합니다.',
+                bgURL: '',
+            },
+        ],
+    },
+
+    {
+        id: 9,
+        title: '복음 시대',
+        subtitle: '왕의 오심',
+        bgKeyword: 'gospel',
+        bgURL: '/img/jesus.webp',
+        type: 'NT',
+        mainStream: '마태, 마가, 누가, 요한',
+        detail: '400년의 침묵을 깨고 예수 그리스도가 오십니다. 그의 삶과 가르침, 십자가 죽음과 부활을 통해 하나님의 나라가 시작되고 구약의 약속이 성취됩니다.',
+        characters: ['예수 그리스도', '제자들'],
+        relatedBooks: [],
+    },
+
+    {
+        id: 10,
+        title: '교회 시대',
+        subtitle: '복음의 확장',
+        bgKeyword: 'acts',
+        bgURL: '/img/acts.webp',
+        type: 'NT',
+        mainStream: '사도행전',
+        detail: '성령 강림으로 교회가 탄생하고, 복음은 예루살렘에서 시작해 온 세상으로 확장됩니다. 박해와 선교 속에서 교회는 하나님의 나라를 증언합니다.',
+        characters: ['베드로', '바울'],
+        relatedBooks: [
+            {
+                name: '로마서',
+                category: '바울서신',
+                desc: '복음을 가장 체계적으로 설명하며 죄, 은혜, 이신칭의와 성화의 과정을 다룹니다.',
+                bgURL: '',
+            },
+            {
+                name: '고린도전서',
+                category: '바울서신',
+                desc: '분열된 교회를 향해 십자가의 지혜와 사랑의 본질을 가르칩니다.',
+                bgURL: '',
+            },
+            {
+                name: '갈라디아서',
+                category: '바울서신',
+                desc: '율법이 아닌 믿음으로 얻는 자유와 복음의 본질을 강하게 변호합니다.',
+                bgURL: '',
+            },
+            {
+                name: '히브리서',
+                category: '공동서신',
+                desc: '예수 그리스도를 새 언약의 대제사장으로 제시하며 믿음과 인내를 권면합니다.',
+                bgURL: '',
+            },
+            {
+                name: '요한계시록',
+                category: '예언서',
+                desc: '박해 속 교회에 어린양의 승리와 새 하늘과 새 땅의 소망을 보여줍니다.',
+                bgURL: '',
+            },
+        ],
+    },
 ]);
 
 const currentEra = computed(() => eras.value[currentEraIndex.value]);
@@ -471,6 +631,9 @@ onUnmounted(() => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
+                    <figure class="mobile-only-img">
+                        <img :src="selectedBook.bgURL || '/img/genesis_01.png'" alt="" />
+                    </figure>
 
                     <div class="card-header">
                         <div class="main-bible-badge" :class="currentEra.type">
@@ -932,8 +1095,8 @@ onUnmounted(() => {
 
     .detail-close-btn {
         position: absolute;
-        top: 1.5rem;
-        right: 1.5rem;
+        top: 0.5rem;
+        right: 0.5rem;
         background: transparent;
         border: none;
         color: rgba(255, 255, 255, 0.5);
