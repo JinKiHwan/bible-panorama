@@ -742,6 +742,16 @@ onUnmounted(() => {
         @include mobile {
             font-size: 16px;
         }
+
+        a {
+            background-image:url('/img/common/gradient.webp');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
     }
 
     .header-controls {
@@ -985,7 +995,7 @@ onUnmounted(() => {
         text-transform: uppercase;
 
         /* 모바일에서는 텍스트가 세로로 겹치지 않게 회전시킬 수도 있음 */
-        @media (min-width: 768px) {
+        @include mobile {
             font-size: 12vw;
         }
     }
