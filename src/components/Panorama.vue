@@ -792,6 +792,14 @@ onUnmounted(() => {
             }
         }
     }
+    
+    .nav-toggle-btn{
+      font-size: 1rem;
+
+      @include mobile{
+        font-size: 12px;
+      }
+    }
 
     /* 네비게이션 메뉴 스타일 */
     .main-nav {
@@ -1032,11 +1040,6 @@ onUnmounted(() => {
     display: flex;
     align-items: center; /* 데스크탑: 중앙 정렬 */
     justify-content: center;
-
-    @include mobile {
-        align-items: flex-end; /* 예: 하단 배치 */
-        padding-bottom: 2rem;
-    }
 }
 
 .main-card {
@@ -1060,7 +1063,7 @@ onUnmounted(() => {
         width: 95%;
         padding: 2rem;
         gap: 1rem;
-        max-height: 70vh; /* 너무 길어지지 않게 제한 */
+        max-height: 80vh; /* 너무 길어지지 않게 제한 */
         //overflow-y: auto; /* 내용 많으면 내부 스크롤 */
         margin-bottom: 5vh;
     }
