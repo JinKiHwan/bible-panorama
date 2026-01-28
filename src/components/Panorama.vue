@@ -713,6 +713,8 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
+@use 'sass:color';
+
 /* 색상 변수 정의 */
 .home-container {
     font-family: 'Noto Sans KR', sans-serif;
@@ -741,7 +743,7 @@ onUnmounted(() => {
     mix-blend-mode: difference;
     color: white;
 
-    @include mobile{
+    @include mobile {
         mix-blend-mode: normal;
     }
 
@@ -790,7 +792,7 @@ onUnmounted(() => {
             .progress-fill {
                 height: 100%;
                 // background-color: white;
-                background: url('/img/common/gradient2.webp') no-repeat center center/cover;
+                background: url('/img/common/gradient.webp') no-repeat center center/cover;
                 transition: width 0.3s;
             }
         }
@@ -878,7 +880,7 @@ onUnmounted(() => {
 
                 &.active.OT a {
                     background-color: rgba($ot-color, 0.2);
-                    color: lighten($ot-color, 20%);
+                    color: color.adjust($ot-color, $lightness: 20%);
 
                     .nav-idx {
                         color: rgba($ot-color, 0.7);
@@ -886,7 +888,7 @@ onUnmounted(() => {
                 }
                 &.active.NT a {
                     background-color: rgba($nt-color, 0.2);
-                    color: lighten($nt-color, 20%);
+                    color: color.adjust($nt-color, $lightness: 20%);
                     .nav-idx {
                         color: rgba($nt-color, 0.7);
                     }
@@ -1179,12 +1181,12 @@ onUnmounted(() => {
 
             &.OT {
                 background-color: rgba($ot-color, 0.2);
-                color: lighten($ot-color, 20%);
+                color: color.adjust($ot-color, $lightness: 20%);
                 border-color: rgba($ot-color, 0.3);
             }
             &.NT {
                 background-color: rgba($nt-color, 0.2);
-                color: lighten($nt-color, 20%);
+                color: color.adjust($nt-color, $lightness: 20%);
                 border-color: rgba($nt-color, 0.3);
             }
         }
@@ -1201,10 +1203,10 @@ onUnmounted(() => {
             }
 
             &.OT {
-                color: lighten($ot-color, 10%);
+                color: color.adjust($ot-color, $lightness: 10%);
             }
             &.NT {
-                color: lighten($nt-color, 10%);
+                color: color.adjust($nt-color, $lightness: 10%);
             }
         }
     }
@@ -1224,7 +1226,7 @@ onUnmounted(() => {
         }
         p {
             font-size: 1.125rem;
-            color: lighten($accent-color, 25%);
+            color: color.adjust($accent-color, $lightness: 25%);
             font-weight: 500;
             margin: 0;
 
@@ -1314,14 +1316,14 @@ onUnmounted(() => {
             cursor: pointer;
 
             &:hover {
-                background: linear-gradient(to right, darken($ot-color, 5%), darken(#047a8f, 5%));
+                background: linear-gradient(to right, color.adjust($ot-color, $lightness: - 5%), color.adjust(#047a8f, $lightness: - 5%));
             }
 
             &.NT {
                 background: linear-gradient(to right, $nt-color, #9f2a3d);
                 box-shadow: 0 10px 15px -3px rgba($nt-color, 0.25);
                 &:hover {
-                    background: linear-gradient(to right, darken($nt-color, 5%), darken(#9f2a3d, 5%));
+                    background: linear-gradient(to right, color.adjust($nt-color, $lightness: - 5%), color.adjust(#9f2a3d, $lightness: - 5%));
                 }
             }
 
@@ -1498,7 +1500,7 @@ onUnmounted(() => {
                 }
                 .book-category span {
                     background-color: rgba($accent-color, 0.3);
-                    color: lighten($accent-color, 20%);
+                    color: color.adjust($accent-color, $lightness: 20%);
                 }
             }
 
@@ -1516,7 +1518,7 @@ onUnmounted(() => {
 
                 .book-category span {
                     background-color: rgba($accent-color, 0.3);
-                    color: lighten($accent-color, 20%);
+                    color: color.adjust($accent-color, $lightness: 20%);
                 }
             }
 
