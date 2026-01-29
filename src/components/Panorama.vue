@@ -91,8 +91,8 @@ const eras = ref([
       { name: '잠언', category: '시가서', desc: '여호와를 경외함을 지혜의 시작으로 삼아 말과 관계, 돈과 선택의 원리를 가르칩니다. 일상의 삶을 지혜롭게 살아가는 실천적 교훈이 담겨 있습니다.', bgURL: '/img/proverbs.webp' },
       { name: '전도서', category: '시가서', desc: '지혜와 쾌락, 성취를 모두 경험한 후 인생의 허무를 직면합니다. 그럼에도 하나님을 경외하며 현재의 삶을 선물로 받아들이는 태도를 가르칩니다.', bgURL: '/img/ecclesiastes.webp' },
       { name: '아가', category: '시가서', desc: '남녀의 사랑을 시로 노래하며 갈망과 기다림, 결합과 회복을 묘사합니다. 사랑은 소유가 아닌 선택이며, 죽음처럼 강한 힘임을 선언합니다.', bgURL: '/img/songsofsolonon.webp' },
-      { name: '역대상', category: '역사서', desc: '아담부터 다윗까지의 계보와 다윗 통치를 예배와 성전 준비의 관점에서 재조명합니다. 하나님의 나라가 무엇인지 신학적으로 정리한 역사서입니다.', bgURL: '' },
-      { name: '역대하', category: '역사서', desc: '솔로몬 이후 남유다 왕들의 역사를 언약과 예배의 관점에서 기록합니다. 회개와 회복, 그리고 포로로 끝나는 역사 속에서도 소망을 남깁니다.', bgURL: '' },
+      { name: '역대상', category: '역사서', desc: '아담부터 다윗까지의 계보와 다윗 통치를 예배와 성전 준비의 관점에서 재조명합니다. 하나님의 나라가 무엇인지 신학적으로 정리한 역사서입니다.', bgURL: '/img/chronicles_01.webp' },
+      { name: '역대하', category: '역사서', desc: '솔로몬 이후 남유다 왕들의 역사를 언약과 예배의 관점에서 기록합니다. 회개와 회복, 그리고 포로로 끝나는 역사 속에서도 소망을 남깁니다.', bgURL: '/img/chronicles_02.webp' },
     ],
   },
   {
@@ -111,11 +111,11 @@ const eras = ref([
       { name: '요나', category: '북이스라엘 예언', desc: '원수 니느웨로 향하라는 명령을 거부한 요나의 도망과 회복 이야기입니다. 하나님의 자비가 이스라엘 밖까지 확장됨을 보여줍니다.', bgURL: '/img/yona.webp' },
       { name: '이사야', category: '남유다 예언', desc: '유다의 죄를 고발하면서도 메시아와 새 창조의 소망을 풍성하게 예언합니다. 임마누엘과 고난받는 종의 메시지가 중심입니다.', bgURL: '/img/isaiah.webp' },
       { name: '미가', category: '남유다 예언', desc: '지도자들의 탐욕을 책망하며 공의·인애·겸손의 삶을 제시합니다. 베들레헴에서 태어날 통치자 예언이 포함됩니다.', bgURL: '/img/micah.webp' },
-      { name: '요엘', category: '남유다 예언', desc: '메뚜기 재앙을 여호와의 날로 해석하며 회개를 촉구합니다. 성령을 만민에게 부어주실 약속이 담겨 있습니다.', bgURL: '' },
-      { name: '오바댜', category: '남유다 예언', desc: '형제 유다의 환난을 조롱한 에돔을 향한 심판 선언입니다. 교만한 권세는 반드시 무너진다는 메시지를 전합니다.', bgURL: '' },
-      { name: '나훔', category: '남유다 예언', desc: '잔혹한 제국 앗수르의 수도 니느웨 멸망을 선포하며, 악의 권력이 영원하지 않음을 증언합니다.', bgURL: '' },
-      { name: '하박국', category: '남유다 예언', desc: '악인이 형통하는 현실을 질문하며 하나님의 응답을 기다립니다. “의인은 믿음으로 산다”는 신앙 고백으로 마무리됩니다.', bgURL: '' },
-      { name: '스바냐', category: '남유다 예언', desc: '여호와의 날의 심판을 선포하면서도 남은 자를 통한 회복과 기쁨의 약속을 전합니다.', bgURL: '' },
+      { name: '요엘', category: '남유다 예언', desc: '메뚜기 재앙을 여호와의 날로 해석하며 회개를 촉구합니다. 성령을 만민에게 부어주실 약속이 담겨 있습니다.', bgURL: '/img/joel.webp' },
+      { name: '오바댜', category: '남유다 예언', desc: '형제 유다의 환난을 조롱한 에돔을 향한 심판 선언입니다. 교만한 권세는 반드시 무너진다는 메시지를 전합니다.', bgURL: '/img/obadiah.webp' },
+      { name: '나훔', category: '남유다 예언', desc: '잔혹한 제국 앗수르의 수도 니느웨 멸망을 선포하며, 악의 권력이 영원하지 않음을 증언합니다.', bgURL: '/img/nahum.webp' },
+      { name: '하박국', category: '남유다 예언', desc: '악인이 형통하는 현실을 질문하며 하나님의 응답을 기다립니다. “의인은 믿음으로 산다”는 신앙 고백으로 마무리됩니다.', bgURL: '/img/habakkuk.webp' },
+      { name: '스바냐', category: '남유다 예언', desc: '여호와의 날의 심판을 선포하면서도 남은 자를 통한 회복과 기쁨의 약속을 전합니다.', bgURL: '/img/zephaniah.webp' },
     ],
   },
   {
@@ -129,10 +129,10 @@ const eras = ref([
     detail: '예루살렘은 함락되고 백성은 바벨론으로 끌려갑니다. 나라를 잃은 상황에서도 하나님은 다니엘과 선지자들을 통해 여전히 역사의 주권자이심을 드러내십니다.',
     characters: ['다니엘', '에스겔'],
     relatedBooks: [
-      { name: '예레미야', category: '예언서', desc: '멸망 직전의 유다에 끝까지 회개를 외친 눈물의 선지자 이야기입니다. 심판 속에서도 새 언약과 회복의 소망을 전합니다.', bgURL: '' },
-      { name: '예레미야애가', category: '예언서', desc: '예루살렘 멸망을 애도하는 시로, 절망 속에서도 하나님의 긍휼을 붙드는 신앙을 보여줍니다.', bgURL: '' },
-      { name: '에스겔', category: '예언서', desc: '포로지에서 환상과 상징을 통해 심판과 회복을 선포합니다. 마른 뼈 환상은 재창조의 희망을 상징합니다.', bgURL: '' },
-      { name: '에스더', category: '역사서', desc: '페르시아 제국에서 유다 민족이 멸절 위기에 처했을 때, 하나님의 보이지 않는 섭리로 구원이 이루어지는 이야기입니다.', bgURL: '' },
+      { name: '예레미야', category: '예언서', desc: '멸망 직전의 유다에 끝까지 회개를 외친 눈물의 선지자 이야기입니다. 심판 속에서도 새 언약과 회복의 소망을 전합니다.', bgURL: '/img/jeremiah.webp' },
+      { name: '예레미야애가', category: '예언서', desc: '예루살렘 멸망을 애도하는 시로, 절망 속에서도 하나님의 긍휼을 붙드는 신앙을 보여줍니다.', bgURL: '/img/lamentations.webp' },
+      { name: '에스겔', category: '예언서', desc: '포로지에서 환상과 상징을 통해 심판과 회복을 선포합니다. 마른 뼈 환상은 재창조의 희망을 상징합니다.', bgURL: '/img/ezekiel.webp' },
+      { name: '에스더', category: '역사서', desc: '페르시아 제국에서 유다 민족이 멸절 위기에 처했을 때, 하나님의 보이지 않는 섭리로 구원이 이루어지는 이야기입니다.', bgURL: '/img/esther.webp' },
     ],
   },
   {
@@ -146,9 +146,9 @@ const eras = ref([
     detail: '고레스 칙령으로 포로들이 귀환하며 성전과 성벽, 공동체가 재건됩니다. 외형은 회복되지만 영적 갈증 속에서 메시아를 기다리는 침묵의 시기로 이어집니다.',
     characters: ['에스라', '느헤미야'],
     relatedBooks: [
-      { name: '학개', category: '예언서', desc: '성전 재건을 미루는 백성을 책망하며 하나님의 집을 우선순위에 둘 것을 촉구합니다.', bgURL: '' },
-      { name: '스가랴', category: '예언서', desc: '환상과 상징을 통해 성전 재건을 격려하고 장차 오실 왕에 대한 메시아적 소망을 전합니다.', bgURL: '' },
-      { name: '말라기', category: '예언서', desc: '형식적 예배와 무너진 언약을 책망하며, 주의 길을 예비할 자의 오심을 예언합니다.', bgURL: '' },
+      { name: '학개', category: '예언서', desc: '성전 재건을 미루는 백성을 책망하며 하나님의 집을 우선순위에 둘 것을 촉구합니다.', bgURL: '/img/haggai.webp' },
+      { name: '스가랴', category: '예언서', desc: '환상과 상징을 통해 성전 재건을 격려하고 장차 오실 왕에 대한 메시아적 소망을 전합니다.', bgURL: '/img/zechariah.webp' },
+      { name: '말라기', category: '예언서', desc: '형식적 예배와 무너진 언약을 책망하며, 주의 길을 예비할 자의 오심을 예언합니다.', bgURL: '/img/malachi.webp' },
     ],
   },
   {
@@ -174,11 +174,11 @@ const eras = ref([
     detail: '성령 강림으로 교회가 탄생하고, 복음은 예루살렘에서 시작해 온 세상으로 확장됩니다. 박해와 선교 속에서 교회는 하나님의 나라를 증언합니다.',
     characters: ['베드로', '바울'],
     relatedBooks: [
-      { name: '로마서', category: '바울서신', desc: '복음을 가장 체계적으로 설명하며 죄, 은혜, 이신칭의와 성화의 과정을 다룹니다.', bgURL: '' },
-      { name: '고린도전서', category: '바울서신', desc: '분열된 교회를 향해 십자가의 지혜와 사랑의 본질을 가르칩니다.', bgURL: '' },
-      { name: '갈라디아서', category: '바울서신', desc: '율법이 아닌 믿음으로 얻는 자유와 복음의 본질을 강하게 변호합니다.', bgURL: '' },
-      { name: '히브리서', category: '공동서신', desc: '예수 그리스도를 새 언약의 대제사장으로 제시하며 믿음과 인내를 권면합니다.', bgURL: '' },
-      { name: '요한계시록', category: '예언서', desc: '박해 속 교회에 어린양의 승리와 새 하늘과 새 땅의 소망을 보여줍니다.', bgURL: '' },
+      { name: '로마서', category: '바울서신', desc: '복음을 가장 체계적으로 설명하며 죄, 은혜, 이신칭의와 성화의 과정을 다룹니다.', bgURL: '/img/romans.webp' },
+      { name: '고린도전서', category: '바울서신', desc: '분열된 교회를 향해 십자가의 지혜와 사랑의 본질을 가르칩니다.', bgURL: '/img/corinthians.webp' },
+      { name: '갈라디아서', category: '바울서신', desc: '율법이 아닌 믿음으로 얻는 자유와 복음의 본질을 강하게 변호합니다.', bgURL: '/img/galatians.webp' },
+      { name: '히브리서', category: '공동서신', desc: '예수 그리스도를 새 언약의 대제사장으로 제시하며 믿음과 인내를 권면합니다.', bgURL: '/img/hebrews.webp' },
+      { name: '요한계시록', category: '예언서', desc: '박해 속 교회에 어린양의 승리와 새 하늘과 새 땅의 소망을 보여줍니다.', bgURL: '/img/revelation.webp' },
     ],
   },
 ]);
@@ -327,11 +327,11 @@ onMounted(() => {
       end: 'bottom bottom',
       onUpdate: (self) => {
         progress.value = Math.round(self.progress * 100);
-        
+
         // 전체 길이 대비 현재 위치 비율로 인덱스 계산
         const totalEras = eras.value.length - 1;
         const newIndex = Math.round(self.progress * totalEras);
-        
+
         if (newIndex >= 0 && newIndex <= totalEras && newIndex !== currentEraIndex.value) {
           currentEraIndex.value = newIndex;
         }
