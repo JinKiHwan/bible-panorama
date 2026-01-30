@@ -220,12 +220,16 @@ onMounted(() => {
     }
     .user-profile {
       width: 2rem;
-      height: 2rem;
+      aspect-ratio: 1/1;
       border-radius: 50%;
       overflow: hidden;
       cursor: pointer;
       border: 1px solid rgba(255, 255, 255, 0.5);
       margin-right: 0.5rem;
+      @include mobile {
+        width: 3.5rem;
+      }
+
       img {
         width: 100%;
         height: 100%;
@@ -257,6 +261,12 @@ onMounted(() => {
         border-radius: 0.25rem;
         transition: all 0.2s;
         white-space: nowrap;
+
+        @include mobile {
+          font-size: 14px;
+          padding: 14px 10px;
+        }
+
         &:hover {
           background: rgba(255, 255, 255, 0.05);
           color: white;
