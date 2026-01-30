@@ -5,28 +5,35 @@ const props = defineProps({
   currentEra: Object,
   selectedBook: Object,
   isBooksVisible: Boolean,
+  currentUser: Object,
+  isCleared: Boolean,
 });
 
-const emit = defineEmits(['toggleBooks', 'closeBookDetail']);
+const emit = defineEmits(['toggleBooks', 'closeBookDetail', 'startQuiz']);
 
 const isBookDetail = computed(() => !!props.selectedBook);
 const currentItem = computed(() => props.selectedBook || props.currentEra);
+
+// 퀴즈 데이터 유무 확인
+const hasQuiz = computed(() => {
+  return !isBookDetail.value && props.currentEra.quiz && props.currentEra.quiz.length > 0;
+});
 </script>
 
 <template>
   <div class="fixed-content-layer">
     <transition name="fade" mode="out-in">
-      <div :key="isBookDetail ? 'book-' + currentItem.name : 'era-' + currentItem.id" class="main-card" :class="[currentEra.type, { 'book-detail-card': isBookDetail }]">
-        <!-- 닫기 버튼 (책 상세 보기일 때만) -->
+      <div :key="isBookDetail ? 'book-' + currentItem.name : 'era-' + currentItem.id" class="main-card" :class="[currentEra.type, { 'book-detail-card': isBookDetail }, { success: !isBookDetail && isCleared }]">
+        <!-- 닫기 버튼 -->
         <button v-if="isBookDetail" class="detail-close-btn" @click="$emit('closeBookDetail')">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        <!-- 모바일 이미지 표시 -->
+        <!-- 모바일 이미지 -->
         <figure class="mobile-only-img">
-          <img :src="isBookDetail ? currentItem.bgURL || '/img/genesis_01.png' : currentItem.bgURL || '/img/genesis_01.png'" alt="" />
+          <img :src="currentItem.bgURL || '/img/genesis_01.png'" alt="" />
         </figure>
 
         <div class="card-header">
@@ -41,7 +48,10 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
         </div>
 
         <div class="title-area">
-          <h2>{{ isBookDetail ? currentItem.name : currentItem.title }}</h2>
+          <h2>
+            {{ isBookDetail ? currentItem.name : currentItem.title }}
+            <span v-if="!isBookDetail && isCleared" class="clear-badge">🏅 CLEAR</span>
+          </h2>
           <p>{{ isBookDetail ? currentEra.title + ' 시대 배경' : currentItem.subtitle }}</p>
         </div>
 
@@ -59,8 +69,10 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
           </div>
         </div>
 
-        <!-- 하단 액션 버튼 (시대 정보일 때) -->
+        <!-- 하단 액션 버튼 -->
         <div v-if="!isBookDetail" class="action-area">
+          <button v-if="currentUser && !isCleared && hasQuiz" class="quiz-btn" @click="$emit('startQuiz')">🎯 퀴즈 도전</button>
+
           <button @click="$emit('toggleBooks')" class="books-btn" :class="currentEra.type">
             <span>
               <span v-if="currentEra.relatedBooks.length > 0">함께 읽는 성경 ({{ currentEra.relatedBooks.length }}권)</span>
@@ -72,7 +84,6 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
           </button>
         </div>
 
-        <!-- 하단 여백 (책 상세일 때) -->
         <div v-else class="mt-4"></div>
       </div>
     </transition>
@@ -86,6 +97,7 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
   position: fixed;
   top: 0;
   left: 0;
+  max-width: 100vw;
   width: 100%;
   height: 100%;
   pointer-events: none;
@@ -93,8 +105,6 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
   display: flex;
   align-items: center;
   justify-content: center;
-  @include mobile {
-  }
 }
 
 .main-card {
@@ -118,6 +128,14 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
     gap: 1rem;
     max-height: 80vh;
     margin-bottom: 5vh;
+  }
+
+  /* 성공(Clear) 상태 스타일 */
+  &.success {
+    border-color: #fbbf24;
+    box-shadow:
+      0 0 30px rgba(251, 191, 36, 0.2),
+      0 25px 50px -12px rgba(0, 0, 0, 0.5);
   }
 
   &.book-detail-card {
@@ -149,8 +167,14 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
     border-radius: inherit;
     z-index: -1;
   }
+
   &.NT::after {
     background: conic-gradient(transparent, rgba($nt-color, 0.5), transparent 30%);
+  }
+
+  /* 성공 시 네온 색상 */
+  &.success::after {
+    background: conic-gradient(transparent, rgba(251, 191, 36, 0.8), transparent 30%);
   }
 
   @keyframes rotate {
@@ -243,9 +267,22 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
       font-family: 'Noto Serif KR', serif;
       color: white;
       margin: 0 0 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
       @include mobile {
         font-size: 22px;
         margin-bottom: 10px;
+      }
+      .clear-badge {
+        font-size: 1rem;
+        background: #fbbf24;
+        color: #000;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.3rem;
+        vertical-align: middle;
+        font-family: 'Noto Sans KR', sans-serif;
       }
     }
     p {
@@ -318,8 +355,35 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+
+    .quiz-btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.75rem;
+      background: #eab308;
+      color: #000;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      &:hover {
+        background: #facc15;
+        transform: translateY(-2px);
+      }
+      @include mobile {
+        width: 100%;
+        padding: 1.5rem 0;
+        font-size: 14px;
+      }
+    }
+
     .books-btn {
-      width: 100%;
+      flex: 1;
+      width: auto;
       display: flex;
       align-items: center;
       justify-content: center;

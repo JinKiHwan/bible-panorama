@@ -123,6 +123,7 @@ onMounted(() => {
   top: 0;
   left: 0;
   width: 100%;
+  max-width: 100vw;
   z-index: 40;
   padding: 1rem 1.5rem;
   display: flex;

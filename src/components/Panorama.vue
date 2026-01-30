@@ -4,14 +4,16 @@ import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 
 // Firebase Imports
-import { auth } from '@/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db, googleProvider } from '@/firebase';
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 // Data & Components Imports
 import { erasData } from '@/data/bibleData';
 import AppHeader from '@/components/AppHeader.vue';
 import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
+import QuizModal from '@/components/QuizModal.vue'; // [추가] 퀴즈 모달
 import AppFooter from '@/components/AppFooter.vue';
 
 // GSAP 플러그인 등록
@@ -28,13 +30,20 @@ const isNavOpen = ref(false);
 const currentUser = ref(null);
 const selectedBook = ref(null);
 const displayBgUrl = ref('/img/genesis_01.webp');
-
-// 배경 이미지 제어를 위한 ref (GSAP용)
 const bgImage = ref(null);
+
+// [추가] 퀴즈 관련 상태
+const isQuizOpen = ref(false);
+const clearedEras = ref(new Set()); // 클리어한 시대 ID들을 저장하는 Set
 
 // Data Source
 const eras = ref(erasData);
 const currentEra = computed(() => eras.value[currentEraIndex.value]);
+
+// [추가] 현재 시대가 클리어되었는지 확인 (MainCard에 전달)
+const isCurrentEraCleared = computed(() => {
+  return clearedEras.value.has(currentEra.value.id);
+});
 
 // --- Actions ---
 const toggleNav = () => (isNavOpen.value = !isNavOpen.value);
@@ -49,6 +58,79 @@ const closeBookDetail = () => {
   selectedBook.value = null;
 };
 
+const handleLogin = async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    console.error('Login Failed:', error);
+    alert('로그인에 실패했습니다.');
+  }
+};
+
+const handleLogout = async () => {
+  try {
+    await signOut(auth);
+    clearedEras.value.clear(); // 로그아웃 시 클리어 정보 초기화
+  } catch (error) {
+    console.error('Logout Failed:', error);
+  }
+};
+
+// [추가] 퀴즈 관련 핸들러
+const openQuiz = () => {
+  isQuizOpen.value = true;
+};
+
+const closeQuiz = () => {
+  isQuizOpen.value = false;
+};
+
+// [추가] 퀴즈 만점(성공) 시 호출되는 함수
+const handleQuizCompleted = async (isSuccess) => {
+  if (isSuccess && currentUser.value) {
+    const eraId = currentEra.value.id;
+    try {
+      // 1. 로컬 상태 즉시 업데이트 (반응성 향상)
+      clearedEras.value.add(eraId);
+
+      // 2. DB에 저장 (문서 ID를 '유저ID_시대ID'로 하여 중복 방지)
+      const docRef = doc(db, 'cleared_status', `${currentUser.value.uid}_${eraId}`);
+      await setDoc(docRef, {
+        userId: currentUser.value.uid,
+        eraId: eraId,
+        clearedAt: serverTimestamp(),
+      });
+
+      closeQuiz();
+    } catch (error) {
+      console.error('Quiz Save Error:', error);
+      alert('결과 저장 중 오류가 발생했습니다.');
+    }
+  }
+};
+
+// [추가] 유저 로그인 시 클리어 정보 불러오기 (실시간 동기화)
+let unsubscribeClearStatus = null;
+
+watch(currentUser, (user) => {
+  // 기존 리스너 해제 및 초기화
+  if (unsubscribeClearStatus) unsubscribeClearStatus();
+  clearedEras.value.clear();
+
+  if (user) {
+    // 내 클리어 기록만 가져오기
+    const q = query(collection(db, 'cleared_status'), where('userId', '==', user.uid));
+
+    unsubscribeClearStatus = onSnapshot(q, (snapshot) => {
+      const clears = new Set();
+      snapshot.forEach((doc) => {
+        clears.add(doc.data().eraId);
+      });
+      clearedEras.value = clears; // Set 업데이트
+    });
+  }
+});
+
 // 스크롤 이동 로직
 const scrollToEra = (index) => {
   isNavOpen.value = false;
@@ -60,7 +142,6 @@ const scrollToEra = (index) => {
       sections[index].scrollIntoView({ behavior: 'smooth' });
     }
   } else {
-    // 데스크탑: 가로 스크롤 길이 계산 후 이동
     const totalDistance = eras.value.length * 1000;
     const progressRatio = index / (eras.value.length - 1);
     const scrollPos = wrapper.value.offsetTop + progressRatio * totalDistance;
@@ -84,21 +165,15 @@ const activeBgUrl = computed(() => {
 // 배경 이미지 교체 로직 (GSAP 애니메이션)
 watch(activeBgUrl, (newUrl) => {
   if (displayBgUrl.value === newUrl) return;
-
   const imgLoader = new Image();
   imgLoader.src = newUrl;
 
-  // 배경 요소가 있으면 GSAP로 페이드 아웃 -> 교체 -> 페이드 인
   if (bgImage.value) {
     gsap.killTweensOf(bgImage.value);
-
     const tl = gsap.timeline();
     tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' }).call(() => {
-      if (imgLoader.complete) {
-        swapAndFadeIn();
-      } else {
-        imgLoader.onload = swapAndFadeIn;
-      }
+      if (imgLoader.complete) swapAndFadeIn();
+      else imgLoader.onload = swapAndFadeIn;
     });
   } else {
     imgLoader.onload = swapAndFadeIn;
@@ -106,7 +181,6 @@ watch(activeBgUrl, (newUrl) => {
 
   function swapAndFadeIn() {
     displayBgUrl.value = newUrl;
-    // DOM 업데이트 타이밍 확보 후 페이드 인
     setTimeout(() => {
       if (bgImage.value) {
         gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5, ease: 'power1.in' });
@@ -131,7 +205,6 @@ onMounted(async () => {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
 
-  // 현재 컴포넌트에서도 유저 상태는 추적 (추후 기능 확장 대비)
   onAuthStateChanged(auth, (user) => {
     currentUser.value = user;
   });
@@ -148,7 +221,7 @@ onMounted(async () => {
     ScrollTrigger.refresh();
   }, 100);
 
-  // Desktop Scroll Logic
+  // Desktop
   mm.add('(min-width: 768px)', () => {
     gsap.to(sections, {
       xPercent: -100 * (sections.length - 1),
@@ -167,7 +240,7 @@ onMounted(async () => {
     });
   });
 
-  // Mobile Scroll Logic
+  // Mobile
   mm.add('(max-width: 767px)', () => {
     ScrollTrigger.create({
       trigger: wrapper.value,
@@ -187,12 +260,13 @@ onMounted(async () => {
 
 onUnmounted(() => {
   mm.revert();
+  if (unsubscribeClearStatus) unsubscribeClearStatus();
 });
 </script>
 
 <template>
   <div class="home-container">
-    <AppHeader :is-panorama="true" :is-nav-open="isNavOpen" :progress="progress" :current-era-index="currentEraIndex" :eras="eras" @toggle-nav="toggleNav" @scroll-to-era="scrollToEra" />
+    <AppHeader :current-user="currentUser" :is-nav-open="isNavOpen" :progress="progress" :current-era-index="currentEraIndex" :eras="eras" :is-panorama="true" @login="handleLogin" @logout="handleLogout" @toggle-nav="toggleNav" @scroll-to-era="scrollToEra" />
 
     <div class="wrapper" ref="wrapper">
       <div class="horizontal-scroll-container" ref="container">
@@ -204,9 +278,9 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <MainCard :current-era="currentEra" :selected-book="selectedBook" :is-books-visible="isBooksVisible" @toggle-books="toggleBooks" @close-book-detail="closeBookDetail" />
+    <!-- [수정] MainCard에 퀴즈 관련 Props 및 이벤트 전달 -->
+    <MainCard :current-era="currentEra" :selected-book="selectedBook" :is-books-visible="isBooksVisible" :current-user="currentUser" :is-cleared="isCurrentEraCleared" @toggle-books="toggleBooks" @close-book-detail="closeBookDetail" @start-quiz="openQuiz" />
 
-    <!-- 배경 이미지 레이어 (GSAP 제어) -->
     <div class="bible_bg">
       <figure ref="bgImage">
         <img :src="displayBgUrl" alt="Background" />
@@ -214,6 +288,11 @@ onUnmounted(() => {
     </div>
 
     <BookListPanel :is-visible="isBooksVisible" :current-era="currentEra" :selected-book="selectedBook" @close="isBooksVisible = false" @select-book="selectBook" />
+
+    <!-- [추가] 퀴즈 모달 -->
+    <transition name="fade">
+      <QuizModal v-if="isQuizOpen" :questions="currentEra.quiz || []" :era-title="currentEra.title" @close="closeQuiz" @quiz-completed="handleQuizCompleted" />
+    </transition>
 
     <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
   </div>
@@ -259,7 +338,7 @@ onUnmounted(() => {
     width: 100vw;
     height: 100vh;
     border-bottom: none;
-    border-right: 1px rgba(255, 255, 255, 0.25);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .timeline-graphic {
@@ -323,12 +402,14 @@ onUnmounted(() => {
     transform: translate(-50%, -50%);
     font-size: 15vw;
     font-weight: 900;
-    opacity: 0.1;
+    opacity: 0.05;
     font-family: 'Noto Serif KR', serif;
     white-space: nowrap;
     pointer-events: none;
     letter-spacing: 0.5rem;
     text-transform: uppercase;
+    color: $text-primary;
+    transition: all 0.8s ease-out;
     @include desktop {
       font-size: 12vw;
     }
@@ -342,15 +423,16 @@ onUnmounted(() => {
     height: 1rem;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
     z-index: 1;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     &.OT {
       background-color: $ot-color;
-      box-shadow: 0 0 20px rgba($ot-color, 0.8);
+      box-shadow: 0 0 15px $ot-color;
     }
     &.NT {
       background-color: $nt-color;
-      box-shadow: 0 0 20px rgba($nt-color, 0.8);
+      box-shadow: 0 0 15px $nt-color;
     }
   }
 }
@@ -358,6 +440,7 @@ onUnmounted(() => {
 .bible_bg {
   position: fixed;
   width: 100%;
+  max-width: 100vw;
   height: 100%;
   left: 50%;
   top: 50%;
@@ -370,12 +453,15 @@ onUnmounted(() => {
     position: absolute;
     top: 0;
     left: 0;
-    opacity: 0.25; /* 초기 투명도 설정 (GSAP가 제어) */
+    opacity: 0.25;
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       filter: blur(5px);
+      position: absolute;
+      top: 0;
+      left: 0;
     }
   }
 }
@@ -387,5 +473,14 @@ onUnmounted(() => {
   z-index: 40;
   backdrop-filter: blur(4px);
   transition: opacity 0.3s;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

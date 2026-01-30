@@ -30,6 +30,7 @@ const openTerms = () => {
   bottom: 0;
   left: 0;
   width: 100%;
+  max-width: 100vw;
   z-index: 30; /* MainCard(10)보다 위, BookListPanel(50)보다 아래 */
   padding: 1rem 1.5rem;
   background: transparent; /* 배경 투명 (글자만 둥둥) */
