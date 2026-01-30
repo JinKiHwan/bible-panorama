@@ -1,15 +1,22 @@
 <script setup>
-defineEmits(['openPrivacy', 'openTerms']);
+// 간단한 안내 문구를 띄우는 로직을 컴포넌트 내부에 직접 구현합니다.
+const openPrivacy = () => {
+  alert('개인정보처리방침\n\n1. 수집 항목: 이메일, 이름, 프로필 사진 (Google 로그인 시)\n2. 목적: 사용자 식별 및 묵상 노트 저장\n3. 보유 기간: 회원 탈퇴 시까지\n\n수집된 정보는 서비스 제공 이외의 목적으로 사용되지 않습니다.');
+};
+
+const openTerms = () => {
+  alert('이용약관\n\n본 서비스는 무료로 제공되며, 개인의 묵상 기록 용도로 사용됩니다.\n불법적인 콘텐츠 게시 시 사전 통보 없이 삭제될 수 있습니다.');
+};
 </script>
 
 <template>
   <footer class="app-footer">
     <div class="footer-inner">
-      <div class="copyright">&copy; 2026 <strong>Bible Panorama</strong>. All rights reserved.</div>
+      <div class="copyright">&copy; 2024 <strong>Bible Panorama</strong>. All rights reserved.</div>
       <div class="legal-links">
-        <button @click="$emit('openPrivacy')">개인정보처리방침</button>
+        <button @click="openPrivacy">개인정보처리방침</button>
         <span class="divider">|</span>
-        <button @click="$emit('openTerms')">이용약관</button>
+        <button @click="openTerms">이용약관</button>
       </div>
     </div>
   </footer>
