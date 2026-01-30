@@ -15,6 +15,7 @@ import AppHeader from '@/components/AppHeader.vue';
 import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
 import QuizModal from '@/components/QuizModal.vue';
+import AppFooter from '@/components/AppFooter.vue';
 
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
@@ -304,6 +305,7 @@ onUnmounted(() => {
 
     <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
   </div>
+  <AppFooter />
 </template>
 
 <style lang="scss" scoped>
