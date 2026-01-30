@@ -210,8 +210,8 @@ onMounted(() => {
         color: #020617;
       }
       @include mobile {
-        padding: 0.4rem 0.8rem;
-        font-size: 12px;
+        padding: 0.8rem 2rem;
+        font-size: 14px;
       }
     }
 
