@@ -283,6 +283,11 @@ const hasQuiz = computed(() => {
         border-radius: 0.3rem;
         vertical-align: middle;
         font-family: 'Noto Sans KR', sans-serif;
+
+        @include mobile {
+          font-size: 12px;
+          padding: 0.5rem 1rem;
+        }
       }
     }
     p {

@@ -199,8 +199,16 @@ const handleAnswer = (optionIndex) => {
         background: rgba(99, 102, 241, 0.1);
         border-color: #6366f1;
         color: white;
+        @include mobile {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #e2e8f0;
+        }
         .num {
           color: #818cf8;
+          @include mobile {
+            color: #94a3b8;
+          }
         }
       }
       &:active {
@@ -236,6 +244,16 @@ const handleAnswer = (optionIndex) => {
       font-weight: 800;
       color: #6366f1;
       margin-right: 0.25rem;
+
+      @include mobile {
+        font-size: 32px;
+      }
+    }
+    .score-total {
+      font-size: 1.5rem;
+      @include mobile {
+        font-size: 16px;
+      }
     }
   }
   .result-message {
@@ -244,11 +262,18 @@ const handleAnswer = (optionIndex) => {
       font-size: 1.5rem;
       color: white;
       margin: 0 0 0.5rem 0;
+
+      @include mobile {
+        font-size: 16px;
+      }
     }
     p {
       color: #94a3b8;
       margin: 0;
       line-height: 1.5;
+      @include mobile {
+        font-size: 14px;
+      }
     }
   }
   .confirm-btn {
@@ -261,6 +286,10 @@ const handleAnswer = (optionIndex) => {
     cursor: pointer;
     font-size: 1rem;
     transition: background 0.2s;
+
+    @include mobile {
+      font-size: 16px;
+    }
     &:hover {
       background: #4f46e5;
     }
