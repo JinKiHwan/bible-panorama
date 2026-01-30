@@ -12,6 +12,7 @@ import { erasData } from '@/data/bibleData';
 import AppHeader from '@/components/AppHeader.vue';
 import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
+import AppFooter from '@/components/AppFooter.vue';
 
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
@@ -216,6 +217,7 @@ onUnmounted(() => {
 
     <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
   </div>
+  <AppFooter />
 </template>
 
 <style lang="scss" scoped>
@@ -257,7 +259,7 @@ onUnmounted(() => {
     width: 100vw;
     height: 100vh;
     border-bottom: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px rgba(255, 255, 255, 0.25);
   }
 
   .timeline-graphic {

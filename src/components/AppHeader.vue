@@ -67,7 +67,7 @@ onMounted(() => {
     <h1 class="logo"><a href="/">BIBLE PANORAMA</a></h1>
 
     <!-- [파노라마 전용] 중앙 진행 바 -->
-    <div v-if="isPanorama" class="header-controls hidden-mobile">
+    <div v-if="isPanorama" class="header-controls">
       <div class="progress-track">
         <div class="progress-fill" :style="{ width: progress + '%' }"></div>
       </div>
@@ -162,7 +162,7 @@ onMounted(() => {
     transform: translateX(-50%);
     @include mobile {
       left: 50%;
-      bottom: 2rem;
+      bottom: 6.5rem;
     }
 
     .progress-track {
