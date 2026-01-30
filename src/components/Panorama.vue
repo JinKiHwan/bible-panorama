@@ -5,6 +5,10 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 
+// [추가] Firebase Imports
+import { auth, googleProvider } from '@/firebase'; // firebase.js 경로 확인 필요
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
 
@@ -14,6 +18,9 @@ const isBooksVisible = ref(false);
 const progress = ref(0);
 const isNavOpen = ref(false); // 네비게이션 메뉴 토글 상태
 
+// [추가] 사용자 상태 관리
+const currentUser = ref(null);
+
 // [추가] 선택된 관련 성경 (null이면 시대 정보 표시)
 const selectedBook = ref(null);
 
@@ -22,7 +29,25 @@ const bgImage = ref(null);
 // 현재 표시 중인 배경 이미지 URL
 const displayBgUrl = ref('/img/genesis_01.webp');
 
-// 데이터 (관련 성경 낱권 분리 완료)
+// --- [추가] Firebase Auth Logic ---
+const handleLogin = async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    console.error("Login Failed:", error);
+    alert("로그인에 실패했습니다.");
+  }
+};
+
+const handleLogout = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Logout Failed:", error);
+  }
+};
+
+// --- Data ---
 const eras = ref([
   {
     id: 1,
@@ -218,37 +243,16 @@ const activeBgUrl = computed(() => {
   return eras.value[currentEraIndex.value].bgURL || '/img/genesis_01.webp';
 });
 
-// activeBgUrl이 변경될 때마다 이미지 교체 애니메이션 실행
+// activeBgUrl이 변경될 때마다 이미지 교체 (크로스페이드)
 watch(activeBgUrl, (newUrl) => {
   if (displayBgUrl.value === newUrl) return;
 
+  // 이미지 프리로드 후 URL 교체 (Vue Transition이 처리)
   const imgLoader = new Image();
   imgLoader.src = newUrl;
-
-  if (bgImage.value) {
-    gsap.to(bgImage.value, {
-      opacity: 0,
-      duration: 0.3,
-      onComplete: () => {
-        if (imgLoader.complete) {
-          swapAndFadeIn();
-        } else {
-          imgLoader.onload = swapAndFadeIn;
-        }
-      },
-    });
-  } else {
-    imgLoader.onload = swapAndFadeIn;
-  }
-
-  function swapAndFadeIn() {
+  imgLoader.onload = () => {
     displayBgUrl.value = newUrl;
-    setTimeout(() => {
-      if (bgImage.value) {
-        gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5 });
-      }
-    }, 50);
-  }
+  };
 });
 
 const scrollToEra = (index) => {
@@ -286,6 +290,11 @@ onMounted(() => {
     history.scrollRestoration = 'manual';
   }
   window.scrollTo(0, 0);
+
+  // [추가] Firebase Auth 상태 리스너
+  onAuthStateChanged(auth, (user) => {
+    currentUser.value = user;
+  });
 
   preloadImages();
   displayBgUrl.value = eras.value[0].bgURL || '/img/genesis_01.webp';
@@ -327,11 +336,11 @@ onMounted(() => {
       end: 'bottom bottom',
       onUpdate: (self) => {
         progress.value = Math.round(self.progress * 100);
-
+        
         // 전체 길이 대비 현재 위치 비율로 인덱스 계산
         const totalEras = eras.value.length - 1;
         const newIndex = Math.round(self.progress * totalEras);
-
+        
         if (newIndex >= 0 && newIndex <= totalEras && newIndex !== currentEraIndex.value) {
           currentEraIndex.value = newIndex;
         }
@@ -362,14 +371,24 @@ onUnmounted(() => {
         <span class="step-indicator">PART {{ currentEraIndex + 1 }}</span>
       </div>
 
-      <button class="nav-toggle-btn" @click="toggleNav">
-        <span v-if="!isNavOpen">
-          <HamburgerIcon />
-        </span>
-        <span v-else>
-          <CloseIcon />
-        </span>
-      </button>
+      <!-- [추가] 우측 컨트롤 영역 (로그인/로그아웃 + 메뉴 버튼) -->
+      <div class="right-actions">
+        <!-- 로그인/사용자 프로필 -->
+        <button v-if="!currentUser" class="login-btn" @click="handleLogin">Login</button>
+        <div v-else class="user-profile" @click="handleLogout" title="Logout">
+          <img :src="currentUser.photoURL" :alt="currentUser.displayName" />
+        </div>
+
+        <!-- 기존 메뉴 버튼 -->
+        <button class="nav-toggle-btn" @click="toggleNav">
+          <span v-if="!isNavOpen">
+            <HamburgerIcon />
+          </span>
+          <span v-else>
+            <CloseIcon />
+          </span>
+        </button>
+      </div>
 
       <transition name="slide-fade">
         <nav v-if="isNavOpen" class="main-nav">
@@ -487,9 +506,11 @@ onUnmounted(() => {
 
     <!-- 배경 이미지 레이어 -->
     <div class="bible_bg">
-      <figure ref="bgImage">
-        <img :src="displayBgUrl" alt="Background" />
-      </figure>
+      <transition name="bg-fade">
+        <figure :key="displayBgUrl">
+          <img :src="displayBgUrl" alt="Background" />
+        </figure>
+      </transition>
     </div>
 
     <!-- 3. Bottom Sheet -->
@@ -627,9 +648,61 @@ onUnmounted(() => {
     }
   }
 
+  /* [추가] 우측 컨트롤 영역 스타일 */
+  .right-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 60;
+
+    .login-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-right: 0.5rem;
+
+      &:hover {
+        background: white;
+        color: $bg-color;
+      }
+
+      @include mobile {
+        padding: 0.4rem 0.8rem;
+        font-size: 12px;
+      }
+    }
+
+    .user-profile {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.5);
+      margin-right: 0.5rem;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+  }
+
   .nav-toggle-btn {
     font-size: 1rem;
-
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0;
+    
     @include mobile {
       font-size: 12px;
     }
@@ -1509,6 +1582,16 @@ onUnmounted(() => {
   transform: translateY(20px);
 }
 
+.bg-fade-enter-active,
+.bg-fade-leave-active {
+  transition: opacity 1s ease;
+}
+
+.bg-fade-enter-from,
+.bg-fade-leave-to {
+  opacity: 0;
+}
+
 .bible_bg {
   position: fixed;
   width: 100%;
@@ -1532,6 +1615,9 @@ onUnmounted(() => {
       height: 100%;
       object-fit: cover;
       filter: blur(5px);
+      position: absolute;
+      top: 0;
+      left: 0;
     }
   }
 }
