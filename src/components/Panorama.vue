@@ -6,6 +6,7 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 // Firebase Imports
 import { auth, db, googleProvider } from '@/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+// [추가] DB 저장 및 조회를 위한 Firestore 함수들
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 // Data & Components Imports
@@ -13,8 +14,7 @@ import { erasData } from '@/data/bibleData';
 import AppHeader from '@/components/AppHeader.vue';
 import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
-import QuizModal from '@/components/QuizModal.vue'; // [추가] 퀴즈 모달
-import AppFooter from '@/components/AppFooter.vue';
+import QuizModal from '@/components/QuizModal.vue';
 
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
@@ -30,6 +30,7 @@ const isNavOpen = ref(false);
 const currentUser = ref(null);
 const selectedBook = ref(null);
 const displayBgUrl = ref('/img/genesis_01.webp');
+// 배경 이미지 제어를 위한 ref (GSAP용)
 const bgImage = ref(null);
 
 // [추가] 퀴즈 관련 상태
@@ -40,7 +41,7 @@ const clearedEras = ref(new Set()); // 클리어한 시대 ID들을 저장하는
 const eras = ref(erasData);
 const currentEra = computed(() => eras.value[currentEraIndex.value]);
 
-// [추가] 현재 시대가 클리어되었는지 확인 (MainCard에 전달)
+// [추가] 현재 시대 클리어 여부 (MainCard에 전달)
 const isCurrentEraCleared = computed(() => {
   return clearedEras.value.has(currentEra.value.id);
 });
@@ -76,32 +77,34 @@ const handleLogout = async () => {
   }
 };
 
-// [추가] 퀴즈 관련 핸들러
+// [추가] 퀴즈 열기/닫기
 const openQuiz = () => {
   isQuizOpen.value = true;
 };
-
 const closeQuiz = () => {
   isQuizOpen.value = false;
 };
 
-// [추가] 퀴즈 만점(성공) 시 호출되는 함수
+// [추가] 퀴즈 만점(성공) 시 DB 저장 로직
 const handleQuizCompleted = async (isSuccess) => {
   if (isSuccess && currentUser.value) {
     const eraId = currentEra.value.id;
     try {
-      // 1. 로컬 상태 즉시 업데이트 (반응성 향상)
+      // 1. 로컬 상태 즉시 업데이트 (사용자 반응 속도 향상)
       clearedEras.value.add(eraId);
 
-      // 2. DB에 저장 (문서 ID를 '유저ID_시대ID'로 하여 중복 방지)
+      // 2. DB에 저장 (문서 ID를 '유저ID_시대ID'로 지정하여 중복 저장 방지)
+      // 자동으로 'cleared_status' 컬렉션이 생성됩니다.
       const docRef = doc(db, 'cleared_status', `${currentUser.value.uid}_${eraId}`);
       await setDoc(docRef, {
         userId: currentUser.value.uid,
         eraId: eraId,
+        eraTitle: currentEra.value.title, // 참고용 데이터
         clearedAt: serverTimestamp(),
       });
 
-      closeQuiz();
+      // 3. 모달 닫기
+      // closeQuiz();
     } catch (error) {
       console.error('Quiz Save Error:', error);
       alert('결과 저장 중 오류가 발생했습니다.');
@@ -109,7 +112,7 @@ const handleQuizCompleted = async (isSuccess) => {
   }
 };
 
-// [추가] 유저 로그인 시 클리어 정보 불러오기 (실시간 동기화)
+// [추가] 로그인 시 내 클리어 기록 실시간 동기화
 let unsubscribeClearStatus = null;
 
 watch(currentUser, (user) => {
@@ -118,7 +121,7 @@ watch(currentUser, (user) => {
   clearedEras.value.clear();
 
   if (user) {
-    // 내 클리어 기록만 가져오기
+    // 'cleared_status' 컬렉션에서 내 ID로 된 기록만 가져오기
     const q = query(collection(db, 'cleared_status'), where('userId', '==', user.uid));
 
     unsubscribeClearStatus = onSnapshot(q, (snapshot) => {
@@ -126,7 +129,7 @@ watch(currentUser, (user) => {
       snapshot.forEach((doc) => {
         clears.add(doc.data().eraId);
       });
-      clearedEras.value = clears; // Set 업데이트
+      clearedEras.value = clears; // Set 업데이트 -> UI 자동 반영
     });
   }
 });
@@ -170,10 +173,14 @@ watch(activeBgUrl, (newUrl) => {
 
   if (bgImage.value) {
     gsap.killTweensOf(bgImage.value);
+
     const tl = gsap.timeline();
     tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' }).call(() => {
-      if (imgLoader.complete) swapAndFadeIn();
-      else imgLoader.onload = swapAndFadeIn;
+      if (imgLoader.complete) {
+        swapAndFadeIn();
+      } else {
+        imgLoader.onload = swapAndFadeIn;
+      }
     });
   } else {
     imgLoader.onload = swapAndFadeIn;
@@ -181,6 +188,7 @@ watch(activeBgUrl, (newUrl) => {
 
   function swapAndFadeIn() {
     displayBgUrl.value = newUrl;
+    // DOM 업데이트 타이밍 확보 후 페이드 인
     setTimeout(() => {
       if (bgImage.value) {
         gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5, ease: 'power1.in' });
@@ -278,7 +286,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- [수정] MainCard에 퀴즈 관련 Props 및 이벤트 전달 -->
+    <!-- MainCard에 퀴즈 상태와 이벤트 전달 -->
     <MainCard :current-era="currentEra" :selected-book="selectedBook" :is-books-visible="isBooksVisible" :current-user="currentUser" :is-cleared="isCurrentEraCleared" @toggle-books="toggleBooks" @close-book-detail="closeBookDetail" @start-quiz="openQuiz" />
 
     <div class="bible_bg">
@@ -289,14 +297,13 @@ onUnmounted(() => {
 
     <BookListPanel :is-visible="isBooksVisible" :current-era="currentEra" :selected-book="selectedBook" @close="isBooksVisible = false" @select-book="selectBook" />
 
-    <!-- [추가] 퀴즈 모달 -->
+    <!-- 퀴즈 모달 -->
     <transition name="fade">
       <QuizModal v-if="isQuizOpen" :questions="currentEra.quiz || []" :era-title="currentEra.title" @close="closeQuiz" @quiz-completed="handleQuizCompleted" />
     </transition>
 
     <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
   </div>
-  <AppFooter />
 </template>
 
 <style lang="scss" scoped>
