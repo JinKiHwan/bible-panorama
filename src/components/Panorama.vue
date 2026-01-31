@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
+import { usePanoramaState } from '@/composables/usePanoramaState';
 
 // Firebase Imports
 import { auth, db, googleProvider } from '@/firebase';
@@ -13,15 +14,12 @@ import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
 import QuizModal from '@/components/QuizModal.vue';
 
-// [중요] 전역 상태 사용
-import { usePanoramaState } from '@/composables/usePanoramaState';
-
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
 
 // --- State Management ---
 // [변경] 전역 상태 가져오기 (local ref 대체)
-const { eras, progress, currentEraIndex, isNavOpen, registerScrollTrigger } = usePanoramaState();
+const { eras, progress, currentEraIndex, isIntroDone, isNavOpen, registerScrollTrigger } = usePanoramaState();
 
 const wrapper = ref(null);
 const container = ref(null);
@@ -257,7 +255,7 @@ onUnmounted(() => {
       <div class="horizontal-scroll-container" ref="container">
         <div v-for="(era, index) in eras" :key="'bg-' + era.id" class="era-section" :id="era.bgKeyword" :class="{ active: currentEraIndex === index }">
           <div class="timeline-graphic">
-            <span>
+            <span :class="{ 'active-anim': isIntroDone }">
               <i></i>
             </span>
           </div>
@@ -353,6 +351,12 @@ onUnmounted(() => {
       @include mobile {
         display: none;
       }
+
+      &.active-anim {
+        i {
+          animation: move infinite 5s linear;
+        }
+      }
       i {
         display: block;
         width: 70px;
@@ -362,7 +366,7 @@ onUnmounted(() => {
         background-color: $text-primary;
         filter: blur(10px);
         position: absolute;
-        animation: move infinite 5s linear;
+        //animation: move infinite 5s linear;
         visibility: hidden;
         opacity: 0;
         @keyframes move {

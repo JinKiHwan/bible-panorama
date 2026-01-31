@@ -6,6 +6,8 @@ const progress = ref(0);
 const currentEraIndex = ref(0);
 const isNavOpen = ref(false);
 const eras = ref(erasData);
+// [추가] 인트로 애니메이션 완료 여부 (초기값 false)
+const isIntroDone = ref(false);
 
 // 스크롤 이동 함수 저장소
 const scrollToEraTrigger = ref(null);
@@ -28,6 +30,7 @@ export function usePanoramaState() {
     progress,
     currentEraIndex,
     isNavOpen,
+    isIntroDone,
     registerScrollTrigger,
     triggerScrollToEra,
   };

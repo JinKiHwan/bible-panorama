@@ -5,9 +5,11 @@ import { useHead } from '@vueuse/head'; // [추가] SEO 관리를 위한 훅
 import AppHeader from '@/components/AppHeader.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import IntroOverlay from '@/components/IntroOverlay.vue'; // [추가] 인트로 컴포넌트
+import { usePanoramaState } from '@/composables/usePanoramaState';
 
 const route = useRoute();
 const showIntro = ref(true); // 기본적으로 인트로 표시
+const { isIntroDone } = usePanoramaState(); // [추가] 상태 변수 사용
 
 // [수정] 깜빡임 방지: setup 시점에 동기적으로 localStorage 확인
 // 클라이언트 환경(브라우저)인 경우에만 실행하여 빌드 에러 방지
@@ -15,6 +17,7 @@ if (typeof window !== 'undefined') {
   const hasVisited = localStorage.getItem('hasVisited');
   if (hasVisited) {
     showIntro.value = false;
+    isIntroDone.value = true; // [추가] 재방문자는 바로 애니메이션 실행 상태로 설정
   }
 }
 
@@ -61,6 +64,7 @@ const handleEnter = () => {
   showIntro.value = false;
   // 로컬 스토리지에 방문 기록 저장 (재방문 시 인트로 건너뛰기 위함)
   localStorage.setItem('hasVisited', 'true');
+  isIntroDone.value = true;
 };
 
 // onMounted에서의 체크 로직은 setup 단계로 이동했으므로 제거

@@ -4,10 +4,12 @@ defineEmits(['enter']);
 
 <template>
   <div class="intro-overlay">
-    <div class="content">
-      <h1 class="logo">BIBLE PANORAMA</h1>
-      <p class="subtitle">성경의 흐름을 한눈에</p>
-      <button class="enter-btn" @click="$emit('enter')">입장하기</button>
+    <div class="intro-overlay-wrap">
+      <div class="content">
+        <h1 class="logo">BIBLE PANORAMA</h1>
+        <p class="subtitle">성경의 흐름을 한눈에</p>
+        <button class="enter-btn" @click="$emit('enter')">입장하기</button>
+      </div>
     </div>
   </div>
 </template>
@@ -21,10 +23,30 @@ defineEmits(['enter']);
   height: 100vh;
   background-color: #020617; /* 메인 배경색과 동일하게 */
   z-index: 9999; /* 최상위 레벨 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: white;
+  &-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 0;
+    &::before {
+      content: '';
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      background-image: url('/img/genesis_01.webp');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      opacity: 0.15;
+      z-index: -1;
+    }
+  }
 }
 
 .content {
