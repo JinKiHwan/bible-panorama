@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# [추가] Vite SSG 임시 폴더 무시
+.vite-ssg-temp
