@@ -12,6 +12,37 @@ export default defineConfig({
       hostname: 'https://bible-panorama.netlify.app',
       exclude: ['/mypage'],
     }),
+    VitePWA({
+      registerType: 'autoUpdate', // 업데이트 시 자동 새로고침
+      includeAssets: ['favicon.ico', 'img/og-image.jpg'], // 캐싱할 정적 파일
+      manifest: {
+        name: 'Bible Panorama',
+        short_name: 'BiblePanorama',
+        description: '성경의 흐름을 한눈에 보는 인터랙티브 웹사이트',
+        theme_color: '#020617', // 다크 모드 배경색
+        background_color: '#020617',
+        display: 'standalone', // 브라우저 UI 없이 앱처럼 실행
+        start_url: '/',
+        icons: [
+          {
+            src: 'img/icons/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'img/icons/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: 'img/icons/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
+      },
+    }),
   ],
   resolve: {
     alias: {
