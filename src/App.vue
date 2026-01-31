@@ -1,31 +1,50 @@
 <script setup>
-import { RouterView } from 'vue-router';
+import { computed } from 'vue';
+import { RouterView, useRoute } from 'vue-router';
+import AppHeader from '@/components/AppHeader.vue';
+import AppFooter from '@/components/AppFooter.vue';
 
-// 나중에 페이지 전환 효과(GSAP)를 위해 남겨둔 코드라면 그대로 두셔도 됩니다.
-// import { useGsap } from '@/composables/useGsap';
-// const { pageTransition } = useGsap();
+const route = useRoute();
 
-const onEnter = (el, done) => {
-  //pageTransition(el, done);
-  done();
-};
+// home 라우트일 때만 파노라마 모드 활성화 (헤더 스타일 등 분기)
+const isPanorama = computed(() => route.name === 'home');
 </script>
 
 <template>
-  <div class="app-container">
+  <div class="app-layout">
+    <!-- 헤더 전역 배치 -->
+    <AppHeader :is-panorama="isPanorama" />
+
+    <!-- 페이지 컨텐츠 -->
     <RouterView v-slot="{ Component }">
-      <transition @enter="onEnter" :css="false" mode="out-in">
+      <transition name="page-fade" mode="out-in">
         <component :is="Component" />
       </transition>
     </RouterView>
+
+    <!-- 푸터 전역 배치 -->
+    <AppFooter />
   </div>
 </template>
 
 <style lang="scss">
-.app-container {
+/* 전역 레이아웃 스타일 */
+.app-layout {
   width: 100%;
   min-height: 100vh;
   position: relative;
-  overflow: hidden;
+  background-color: #020617; /* 기본 배경 */
+  color: #f1f5f9;
+}
+
+/* 페이지 전환 트랜지션 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
 }
 </style>

@@ -1,27 +1,31 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { auth, googleProvider } from '@/firebase';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { signInWithPopup, signOut } from 'firebase/auth';
 import HamburgerIcon from '@/components/icons/HamburgerIcon.vue';
 import CloseIcon from '@/components/icons/CloseIcon.vue';
 
-const props = defineProps({
-  // 파노라마 페이지 전용 모드 활성화 여부
+// [중요] 전역 상태 가져오기
+import { useAuthState } from '@/composables/useAuthState';
+import { usePanoramaState } from '@/composables/usePanoramaState';
+
+const router = useRouter();
+
+// 1. 로그인 상태 전역 관리
+const { currentUser } = useAuthState();
+
+// 2. 파노라마 데이터 전역 관리
+const { progress, currentEraIndex, eras, isNavOpen, triggerScrollToEra } = usePanoramaState();
+
+// Props: 화면 모드 구분용 (스타일이 아닌 기능 분기용)
+defineProps({
   isPanorama: {
     type: Boolean,
     default: false,
   },
-  // 파노라마용 데이터 (옵션)
-  progress: Number,
-  currentEraIndex: Number,
-  eras: Array,
-  isNavOpen: Boolean,
 });
 
-const emit = defineEmits(['toggleNav', 'scrollToEra']);
-
-// 사용자 상태 (헤더 내부에서 독립적으로 관리)
-const currentUser = ref(null);
 const isProfileMenuOpen = ref(false);
 
 // --- Firebase Auth Logic ---
@@ -39,6 +43,7 @@ const handleLogout = async () => {
     try {
       await signOut(auth);
       isProfileMenuOpen.value = false;
+      router.push('/');
     } catch (error) {
       console.error('Logout Failed:', error);
     }
@@ -50,23 +55,28 @@ const toggleProfileMenu = () => {
 };
 
 const handleMyPage = () => {
-  alert('마이페이지는 준비 중입니다.');
   isProfileMenuOpen.value = false;
+  router.push('/mypage');
 };
 
-// Auth 상태 감지
-onMounted(() => {
-  onAuthStateChanged(auth, (user) => {
-    currentUser.value = user;
-  });
-});
+const toggleNav = () => {
+  isNavOpen.value = !isNavOpen.value;
+};
+
+const handleScrollToEra = (index) => {
+  triggerScrollToEra(index);
+  isNavOpen.value = false;
+};
 </script>
 
 <template>
-  <header class="header-bar" :class="{ 'panorama-mode': isPanorama }">
-    <h1 class="logo"><a href="/">BIBLE PANORAMA</a></h1>
+  <!-- [수정] panorama-mode 클래스 상시 적용 (스타일 고정) -->
+  <header class="header-bar panorama-mode">
+    <h1 class="logo">
+      <router-link to="/">BIBLE PANORAMA</router-link>
+    </h1>
 
-    <!-- [파노라마 전용] 중앙 진행 바 -->
+    <!-- [기능 분기] 중앙 진행 바 (isPanorama일 때만 표시) -->
     <div v-if="isPanorama" class="header-controls">
       <div class="progress-track">
         <div class="progress-fill" :style="{ width: progress + '%' }"></div>
@@ -74,9 +84,9 @@ onMounted(() => {
       <span class="step-indicator">PART {{ currentEraIndex + 1 }}</span>
     </div>
 
-    <!-- 우측 컨트롤 영역 (공통: 로그인 + 파노라마용: 메뉴) -->
+    <!-- 우측 컨트롤 영역 -->
     <div class="right-actions">
-      <!-- 로그인/프로필 (공통) -->
+      <!-- 로그인/프로필 -->
       <button v-if="!currentUser" class="login-btn" @click="handleLogin">Login</button>
       <div v-else class="user-profile-wrapper">
         <div class="user-profile" @click="toggleProfileMenu" :title="currentUser.displayName">
@@ -86,25 +96,25 @@ onMounted(() => {
         <!-- 프로필 드롭다운 -->
         <transition name="dropdown-fade">
           <div v-if="isProfileMenuOpen" class="profile-dropdown">
-            <button @click="handleMyPage">My Page</button>
+            <button @click="handleMyPage">MyPage</button>
             <button @click="handleLogout" class="logout">Logout</button>
           </div>
         </transition>
       </div>
 
-      <!-- [파노라마 전용] 햄버거 메뉴 버튼 -->
-      <button v-if="isPanorama" class="nav-toggle-btn" @click="$emit('toggleNav')">
+      <!-- [기능 분기] 햄버거 메뉴 버튼 (isPanorama일 때만 표시) -->
+      <button v-if="isPanorama" class="nav-toggle-btn" @click="toggleNav">
         <span v-if="!isNavOpen"><HamburgerIcon /></span>
         <span v-else><CloseIcon /></span>
       </button>
     </div>
 
-    <!-- [파노라마 전용] 네비게이션 드로어 -->
+    <!-- [기능 분기] 네비게이션 드로어 (isPanorama일 때만 표시) -->
     <transition name="slide-fade">
       <nav v-if="isPanorama && isNavOpen" class="main-nav">
         <ul>
           <li v-for="(era, index) in eras" :key="era.id" :class="[{ active: currentEraIndex === index }, era.type]">
-            <a href="#" @click.prevent="$emit('scrollToEra', index)">
+            <a href="#" @click.prevent="handleScrollToEra(index)">
               <span class="nav-idx">{{ String(index + 1).padStart(2, '0') }}</span>
               <span class="nav-title">{{ era.title }}</span>
             </a>
@@ -129,11 +139,15 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  mix-blend-mode: difference;
   color: white;
 
-  @include mobile {
-    mix-blend-mode: normal;
+  /* [수정] panorama-mode 스타일 고정 (backdrop-filter 제거) */
+  &.panorama-mode {
+    mix-blend-mode: difference;
+
+    @include mobile {
+      mix-blend-mode: normal;
+    }
   }
 
   .logo {
@@ -225,7 +239,6 @@ onMounted(() => {
       border-radius: 50%;
       overflow: hidden;
       cursor: pointer;
-      border: 1px solid rgba(255, 255, 255, 0.5);
       margin-right: 0.5rem;
       @include mobile {
         width: 3.5rem;

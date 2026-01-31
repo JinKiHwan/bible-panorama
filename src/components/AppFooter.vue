@@ -7,6 +7,9 @@ const openPrivacy = () => {
 const openTerms = () => {
   alert('이용약관\n\n본 서비스는 무료로 제공되며, 개인의 묵상 기록 용도로 사용됩니다.\n불법적인 콘텐츠 게시 시 사전 통보 없이 삭제될 수 있습니다.');
 };
+const openInquiry = () => {
+  alert('문의 및 제안은 makewebwell@gmail.com 으로 메일을 보내주세요.');
+};
 </script>
 
 <template>
@@ -17,6 +20,8 @@ const openTerms = () => {
         <button @click="openPrivacy">개인정보처리방침</button>
         <span class="divider">|</span>
         <button @click="openTerms">이용약관</button>
+        <span class="divider">|</span>
+        <button @click="openInquiry">문의 및 제안</button>
       </div>
     </div>
   </footer>
