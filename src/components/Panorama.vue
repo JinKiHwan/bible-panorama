@@ -256,7 +256,11 @@ onUnmounted(() => {
     <div class="wrapper" ref="wrapper">
       <div class="horizontal-scroll-container" ref="container">
         <div v-for="(era, index) in eras" :key="'bg-' + era.id" class="era-section" :id="era.bgKeyword" :class="{ active: currentEraIndex === index }">
-          <div class="timeline-graphic"><span></span></div>
+          <div class="timeline-graphic">
+            <span>
+              <i></i>
+            </span>
+          </div>
           <div class="bg-keyword-text">{{ era.bgKeyword }}</div>
           <div class="timeline-dot" :class="era.type"></div>
         </div>
@@ -349,8 +353,7 @@ onUnmounted(() => {
       @include mobile {
         display: none;
       }
-      &::before {
-        content: '';
+      i {
         display: block;
         width: 70px;
         aspect-ratio: 150/20;
@@ -374,7 +377,7 @@ onUnmounted(() => {
     }
   }
 
-  &.active .timeline-graphic span::before {
+  &.active .timeline-graphic span i {
     visibility: visible;
     opacity: 1;
   }
