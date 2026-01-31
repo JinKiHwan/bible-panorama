@@ -45,6 +45,10 @@ defineEmits(['enter']);
       background-size: cover;
       opacity: 0.15;
       z-index: -1;
+
+      @include mobile {
+        background-position: left 40% top 50%;
+      }
     }
   }
 }
