@@ -2,7 +2,8 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
-import Sitemap from 'vite-plugin-sitemap'; // [1] import 추가
+import Sitemap from 'vite-plugin-sitemap';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
