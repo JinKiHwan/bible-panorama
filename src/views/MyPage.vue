@@ -5,7 +5,6 @@ import { auth, db } from '@/firebase';
 import { updateProfile, deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
-import AppFooter from '@/components/AppFooter.vue';
 import { erasData } from '@/data/bibleData';
 
 const router = useRouter();
@@ -178,8 +177,6 @@ const handleHeaderLogout = () => {
     <div v-else class="loading-screen">
       <p>Loading...</p>
     </div>
-
-    <AppFooter />
   </div>
 </template>
 
@@ -269,6 +266,11 @@ $gold-color: #fbbf24;
         font-size: 0.875rem;
         color: $text-secondary;
         margin-bottom: 0.5rem;
+
+        @include mobile {
+          font-size: 14px;
+          margin-bottom: 10px;
+        }
       }
 
       .nickname-display {
@@ -284,6 +286,10 @@ $gold-color: #fbbf24;
           font-size: 1.75rem;
           font-weight: 700;
           margin: 0;
+
+          @include mobile {
+            font-size: 18px;
+          }
         }
 
         .edit-btn {
@@ -294,6 +300,10 @@ $gold-color: #fbbf24;
           color: $text-secondary;
           border-radius: 0.25rem;
           cursor: pointer;
+
+          @include mobile {
+            font-size: 14px;
+          }
           &:hover {
             color: white;
             border-color: white;
@@ -316,6 +326,10 @@ $gold-color: #fbbf24;
           padding: 0.5rem;
           border-radius: 0.5rem;
           font-size: 1rem;
+
+          @include mobile {
+            font-size: 18px;
+          }
           &:focus {
             outline: none;
             border-color: $accent-color;
@@ -336,6 +350,9 @@ $gold-color: #fbbf24;
           font-size: 0.875rem;
           cursor: pointer;
           border: none;
+          @include mobile {
+            font-size: 14px;
+          }
 
           &.save-btn {
             background: $accent-color;
@@ -368,12 +385,20 @@ $gold-color: #fbbf24;
     align-items: center;
     gap: 0.5rem;
 
+    @include mobile {
+      font-size: 16px;
+    }
+
     .count {
       font-size: 0.875rem;
       color: $accent-color;
       background: rgba($accent-color, 0.1);
       padding: 0.25rem 0.5rem;
       border-radius: 999px;
+
+      @include mobile {
+        font-size: 16px;
+      }
     }
   }
 
@@ -419,13 +444,16 @@ $gold-color: #fbbf24;
           border-radius: 0.25rem;
           margin-bottom: 0.25rem;
           display: inline-block;
+          @include mobile {
+            font-size: 14px;
+          }
 
           &.OT {
-            color: #67e8f9;
+            color: $ot-color;
             background: rgba(6, 182, 212, 0.1);
           }
           &.NT {
-            color: #fda4af;
+            color: $nt-color;
             background: rgba(244, 63, 94, 0.1);
           }
         }
@@ -434,6 +462,9 @@ $gold-color: #fbbf24;
           font-size: 1rem;
           margin: 0.5rem 0 0;
           font-weight: 600;
+          @include mobile {
+            font-size: 16px;
+          }
         }
       }
 
@@ -442,6 +473,10 @@ $gold-color: #fbbf24;
         bottom: 0.75rem;
         right: 0.75rem;
         font-size: 1.25rem;
+
+        @include mobile {
+          font-size: 14px;
+        }
       }
     }
   }
@@ -462,6 +497,10 @@ $gold-color: #fbbf24;
     cursor: pointer;
     opacity: 0.7;
     transition: opacity 0.2s;
+
+    @include mobile {
+      font-size: 14px;
+    }
 
     &:hover {
       opacity: 1;
