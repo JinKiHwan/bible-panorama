@@ -1,8 +1,8 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth, googleProvider } from '@/firebase';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import HamburgerIcon from '@/components/icons/HamburgerIcon.vue';
 import CloseIcon from '@/components/icons/CloseIcon.vue';
 
@@ -18,7 +18,6 @@ const { currentUser } = useAuthState();
 // 2. 파노라마 데이터 전역 관리
 const { progress, currentEraIndex, eras, isNavOpen, triggerScrollToEra } = usePanoramaState();
 
-// Props: 화면 모드 구분용 (스타일이 아닌 기능 분기용)
 defineProps({
   isPanorama: {
     type: Boolean,
@@ -54,8 +53,15 @@ const toggleProfileMenu = () => {
   isProfileMenuOpen.value = !isProfileMenuOpen.value;
 };
 
-const handleMyPage = () => {
+const handleHome = () => {
   isProfileMenuOpen.value = false;
+  isNavOpen.value = false;
+  router.push('/');
+};
+
+const handleMyPage = () => {
+  isProfileMenuOpen.value = true;
+  isNavOpen.value = false;
   router.push('/mypage');
 };
 
@@ -70,11 +76,8 @@ const handleScrollToEra = (index) => {
 </script>
 
 <template>
-  <!-- [수정] panorama-mode 클래스 상시 적용 (스타일 고정) -->
-  <header class="header-bar panorama-mode">
-    <h1 class="logo">
-      <router-link to="/">BIBLE PANORAMA</router-link>
-    </h1>
+  <header class="header-bar" :class="{ 'panorama-mode': isPanorama }">
+    <h1 class="logo" @click="handleHome">BIBLE PANORAMA</h1>
 
     <!-- [기능 분기] 중앙 진행 바 (isPanorama일 때만 표시) -->
     <div v-if="isPanorama" class="header-controls">
@@ -88,10 +91,13 @@ const handleScrollToEra = (index) => {
     <div class="right-actions">
       <!-- 로그인/프로필 -->
       <button v-if="!currentUser" class="login-btn" @click="handleLogin">Login</button>
-      <div v-else class="user-profile-wrapper">
-        <div class="user-profile" @click="toggleProfileMenu" :title="currentUser.displayName">
+      <div v-else class="user-profile-wrapper" @click="toggleProfileMenu">
+        <div class="user-profile" :title="currentUser.displayName">
           <img :src="currentUser.photoURL" alt="Profile" />
         </div>
+
+        <!-- [추가] 닉네임 표시 (currentUser.displayName) -->
+        <span class="user-name" v-if="currentUser.displayName">{{ currentUser.displayName }}</span>
 
         <!-- 프로필 드롭다운 -->
         <transition name="dropdown-fade">
@@ -141,10 +147,9 @@ const handleScrollToEra = (index) => {
   align-items: center;
   color: white;
 
-  /* [수정] panorama-mode 스타일 고정 (backdrop-filter 제거) */
+  /* panorama-mode 스타일 고정 */
   &.panorama-mode {
     mix-blend-mode: difference;
-
     @include mobile {
       mix-blend-mode: normal;
     }
@@ -154,17 +159,16 @@ const handleScrollToEra = (index) => {
     font-size: 1.25rem;
     font-weight: 700;
     font-family: 'Noto Serif KR', serif;
+    background-image: url('/img/common/gradient.webp');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    cursor: pointer;
     @include mobile {
       font-size: 16px;
-    }
-    a {
-      background-image: url('/img/common/gradient.webp');
-      background-repeat: no-repeat;
-      background-position: center center;
-      background-size: cover;
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
     }
   }
 
@@ -206,7 +210,7 @@ const handleScrollToEra = (index) => {
   .right-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
     z-index: 60;
 
     .login-btn {
@@ -225,21 +229,39 @@ const handleScrollToEra = (index) => {
         color: #020617;
       }
       @include mobile {
-        padding: 0.8rem 2rem;
-        font-size: 14px;
+        padding: 0.4rem 0.8rem;
+        font-size: 12px;
       }
     }
 
+    /* [수정] 프로필 래퍼 스타일 */
     .user-profile-wrapper {
       position: relative;
+      display: flex; /* 닉네임과 이미지 가로 정렬 */
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+
+      /* [추가] 닉네임 스타일 */
+      .user-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: white;
+
+        @include mobile {
+          display: none; /* 모바일에서는 숨김 */
+        }
+      }
     }
+
     .user-profile {
       width: 2rem;
       aspect-ratio: 1/1;
       border-radius: 50%;
       overflow: hidden;
       cursor: pointer;
-      margin-right: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      //margin-right: 0.5rem;
       @include mobile {
         width: 3.5rem;
       }
