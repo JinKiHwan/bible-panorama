@@ -1,11 +1,22 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { RouterView, useRoute } from 'vue-router';
 import { useHead } from '@vueuse/head'; // [추가] SEO 관리를 위한 훅
 import AppHeader from '@/components/AppHeader.vue';
 import AppFooter from '@/components/AppFooter.vue';
+import IntroOverlay from '@/components/IntroOverlay.vue'; // [추가] 인트로 컴포넌트
 
 const route = useRoute();
+const showIntro = ref(true); // 기본적으로 인트로 표시
+
+// [수정] 깜빡임 방지: setup 시점에 동기적으로 localStorage 확인
+// 클라이언트 환경(브라우저)인 경우에만 실행하여 빌드 에러 방지
+if (typeof window !== 'undefined') {
+  const hasVisited = localStorage.getItem('hasVisited');
+  if (hasVisited) {
+    showIntro.value = false;
+  }
+}
 
 // [SEO 전역 설정]
 // 모든 페이지에 기본적으로 적용될 메타 태그들을 설정합니다.
@@ -44,10 +55,24 @@ useHead({
 
 // home 라우트일 때만 파노라마 모드 활성화 (헤더 스타일 등 분기)
 const isPanorama = computed(() => route.name === 'home');
+
+// [추가] 인트로 닫기 핸들러
+const handleEnter = () => {
+  showIntro.value = false;
+  // 로컬 스토리지에 방문 기록 저장 (재방문 시 인트로 건너뛰기 위함)
+  localStorage.setItem('hasVisited', 'true');
+};
+
+// onMounted에서의 체크 로직은 setup 단계로 이동했으므로 제거
 </script>
 
 <template>
   <div class="app-layout">
+    <!-- [추가] 인트로 오버레이 (조건부 렌더링 + 트랜지션) -->
+    <transition name="fade">
+      <IntroOverlay v-if="showIntro" @enter="handleEnter" />
+    </transition>
+
     <!-- 헤더 전역 배치 -->
     <AppHeader :is-panorama="isPanorama" />
 
@@ -71,6 +96,7 @@ const isPanorama = computed(() => route.name === 'home');
   position: relative;
   background-color: #020617; /* 기본 배경 */
   color: #f1f5f9;
+  overflow: hidden;
 }
 
 /* 페이지 전환 트랜지션 */
@@ -81,6 +107,14 @@ const isPanorama = computed(() => route.name === 'home');
 
 .page-fade-enter-from,
 .page-fade-leave-to {
+  opacity: 0;
+}
+
+/* 인트로 사라질 때 페이드 효과 */
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-leave-to {
   opacity: 0;
 }
 </style>
