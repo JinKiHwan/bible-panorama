@@ -15,7 +15,7 @@ const openInquiry = () => {
 <template>
   <footer class="app-footer">
     <div class="footer-inner">
-      <div class="copyright">&copy; 2024 <strong>Bible Panorama</strong>. All rights reserved.</div>
+      <div class="copyright">&copy; 2026 <strong>MakeWebWell</strong>. All rights reserved.</div>
       <div class="legal-links">
         <button @click="openPrivacy">개인정보처리방침</button>
         <span class="divider">|</span>
