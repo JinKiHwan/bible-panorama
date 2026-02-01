@@ -13,7 +13,7 @@ const emit = defineEmits(['close', 'selectBook']);
     <div class="panel-inner">
       <div class="panel-header">
         <div class="header-text">
-          <h3>📚 Context & Side Books</h3>
+          <h3>📚 {{ currentEra.mainStream }}</h3>
           <p>이 시대의 역사적 배경 속에서 기록된 예언서, 시가서, 서신서들입니다.</p>
         </div>
         <button @click="$emit('close')" class="close-btn">
@@ -102,7 +102,7 @@ const emit = defineEmits(['close', 'selectBook']);
         font-weight: 700;
         font-family: 'Noto Serif KR', serif;
         color: white;
-        margin: 0;
+        margin: 0 0 1rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;

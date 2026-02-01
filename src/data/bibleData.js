@@ -10,6 +10,11 @@ export const erasData = [
     detail: '태초에 하나님께서 천지를 창조하시며 역사가 시작됩니다. 인간은 하나님의 형상으로 지음받았으나 선악과 사건으로 타락하고, 죄는 가인과 홍수, 바벨탑 사건을 거치며 전 인류로 확산됩니다. 이 시기는 세상의 시작과 인간 문제의 근원을 보여줍니다.',
     characters: ['아담', '하와', '노아'],
     relatedBooks: [],
+    // [추가] 영상 데이터 (Youtube ID)
+    videos: {
+      intro: '7_cnyXlEJ98', // 준비된 창조시대 영상
+      deep: '2q5oCr2rCt0', // 심화 영상 (클리어 후 해금)
+    },
     quiz: [
       {
         id: 1,
@@ -84,6 +89,10 @@ export const erasData = [
     detail: '하나님은 아브라함 한 사람을 부르셔서 민족과 구원의 역사를 시작하십니다. 이삭, 야곱, 요셉으로 이어지는 족장들의 삶 속에서 약속은 위기와 실패 속에서도 계승되며, 이스라엘 민족의 정체성과 언약의 기초가 세워집니다.',
     characters: ['아브라함', '이삭', '야곱', '요셉'],
     relatedBooks: [{ name: '욥기', category: '시가서', desc: '의인 욥이 이유를 알 수 없는 극심한 고난을 겪으며 하나님의 공의와 주권을 질문합니다. 친구들의 논쟁과 하나님의 직접적인 응답을 통해, 고난의 원인보다 하나님을 신뢰하는 자리로 독자를 이끕니다.', bgURL: '/img/job.webp' }],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -101,6 +110,10 @@ export const erasData = [
       { name: '신명기', category: '율법서', desc: '가나안 입성 직전, 모세가 다음 세대에게 전한 고별 설교입니다. 광야의 역사를 되짚으며 율법의 의미를 다시 풀어 설명하고, “생명을 택하라”는 선택의 메시지로 마무리됩니다.', bgURL: '/img/deuteronomy.webp' },
       { name: '시편 (모세)', category: '시가서', desc: '대표적으로 시편 90편을 통해 인생의 덧없음과 하나님의 영원을 대조합니다. 광야의 현실 속에서 하나님을 영원한 거처로 고백하는 기도가 담겨 있습니다.', bgURL: '/img/psalter_01.webp' },
     ],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -114,6 +127,10 @@ export const erasData = [
     detail: '이스라엘은 여호수아의 인도로 가나안을 정복하고 땅을 분배받습니다. 그러나 왕이 없던 사사 시대에는 불순종과 우상숭배가 반복되며, 타락과 구원이 순환하는 혼란의 시기를 겪습니다.',
     characters: ['여호수아', '기드온', '삼손'],
     relatedBooks: [{ name: '룻기', category: '역사서', desc: '사사 시대의 어둠 속에서 룻과 나오미의 헌신을 통해 하나님의 섭리가 조용히 이어짐을 보여줍니다. 이방 여인 룻이 다윗의 계보에 포함되는 은혜가 핵심입니다.', bgURL: '/img/rute.webp' }],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -134,6 +151,10 @@ export const erasData = [
       { name: '역대상', category: '역사서', desc: '아담부터 다윗까지의 계보와 다윗 통치를 예배와 성전 준비의 관점에서 재조명합니다. 하나님의 나라가 무엇인지 신학적으로 정리한 역사서입니다.', bgURL: '/img/chronicles_01.webp' },
       { name: '역대하', category: '역사서', desc: '솔로몬 이후 남유다 왕들의 역사를 언약과 예배의 관점에서 기록합니다. 회개와 회복, 그리고 포로로 끝나는 역사 속에서도 소망을 남깁니다.', bgURL: '/img/chronicles_02.webp' },
     ],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -158,6 +179,10 @@ export const erasData = [
       { name: '하박국', category: '남유다 예언', desc: '악인이 형통하는 현실을 질문하며 하나님의 응답을 기다립니다. “의인은 믿음으로 산다”는 신앙 고백으로 마무리됩니다.', bgURL: '/img/habakkuk.webp' },
       { name: '스바냐', category: '남유다 예언', desc: '여호와의 날의 심판을 선포하면서도 남은 자를 통한 회복과 기쁨의 약속을 전합니다.', bgURL: '/img/zephaniah.webp' },
     ],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -176,6 +201,10 @@ export const erasData = [
       { name: '에스겔', category: '예언서', desc: '포로지에서 환상과 상징을 통해 심판과 회복을 선포합니다. 마른 뼈 환상은 재창조의 희망을 상징합니다.', bgURL: '/img/ezekiel.webp' },
       { name: '에스더', category: '역사서', desc: '페르시아 제국에서 유다 민족이 멸절 위기에 처했을 때, 하나님의 보이지 않는 섭리로 구원이 이루어지는 이야기입니다.', bgURL: '/img/esther.webp' },
     ],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -193,6 +222,10 @@ export const erasData = [
       { name: '스가랴', category: '예언서', desc: '환상과 상징을 통해 성전 재건을 격려하고 장차 오실 왕에 대한 메시아적 소망을 전합니다.', bgURL: '/img/zechariah.webp' },
       { name: '말라기', category: '예언서', desc: '형식적 예배와 무너진 언약을 책망하며, 주의 길을 예비할 자의 오심을 예언합니다.', bgURL: '/img/malachi.webp' },
     ],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -206,6 +239,10 @@ export const erasData = [
     detail: '400년의 침묵을 깨고 예수 그리스도가 오십니다. 그의 삶과 가르침, 십자가 죽음과 부활을 통해 하나님의 나라가 시작되고 구약의 약속이 성취됩니다.',
     characters: ['예수 그리스도', '제자들'],
     relatedBooks: [],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
   {
@@ -225,6 +262,10 @@ export const erasData = [
       { name: '히브리서', category: '공동서신', desc: '예수 그리스도를 새 언약의 대제사장으로 제시하며 믿음과 인내를 권면합니다.', bgURL: '/img/hebrews.webp' },
       { name: '요한계시록', category: '예언서', desc: '박해 속 교회에 어린양의 승리와 새 하늘과 새 땅의 소망을 보여줍니다.', bgURL: '/img/revelation.webp' },
     ],
+    videos: {
+      intro: '',
+      deep: '',
+    },
     quiz: [],
   },
 ];

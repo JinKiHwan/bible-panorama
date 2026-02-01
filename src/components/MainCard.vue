@@ -9,7 +9,8 @@ const props = defineProps({
   isCleared: Boolean,
 });
 
-const emit = defineEmits(['toggleBooks', 'closeBookDetail', 'startQuiz']);
+// [수정] openVideo 이벤트 추가
+const emit = defineEmits(['toggleBooks', 'closeBookDetail', 'startQuiz', 'openVideo']);
 
 const isBookDetail = computed(() => !!props.selectedBook);
 const currentItem = computed(() => props.selectedBook || props.currentEra);
@@ -18,6 +19,24 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
 const hasQuiz = computed(() => {
   return !isBookDetail.value && props.currentEra.quiz && props.currentEra.quiz.length > 0;
 });
+
+// [추가] 히든(심화) 영상 클릭 핸들러
+const handleHiddenVideo = () => {
+  if (props.isCleared) {
+    emit('openVideo', 'deep');
+  } else {
+    alert('이 영상을 보려면 퀴즈를 통과해야 합니다! 🔒');
+  }
+};
+
+// [추가] 퀴즈 버튼 클릭 핸들러
+const handleQuizClick = () => {
+  if (!props.currentUser) {
+    alert('로그인이 필요한 서비스입니다.');
+    return;
+  }
+  emit('startQuiz');
+};
 </script>
 
 <template>
@@ -31,10 +50,27 @@ const hasQuiz = computed(() => {
           </svg>
         </button>
 
-        <!-- 모바일 이미지 -->
-        <figure class="mobile-only-img">
-          <img :src="currentItem.bgURL || '/img/genesis_01.png'" alt="" />
-        </figure>
+        <!-- [수정] 비주얼 영역 및 영상 버튼 추가 -->
+        <div class="main-card_visual">
+          <figure class="mobile-only-img">
+            <img :src="currentItem.bgURL || '/img/genesis_01.png'" alt="" />
+          </figure>
+
+          <!-- 시대 정보일 때만 영상 버튼 표시 -->
+          <div v-if="!isBookDetail" class="video-controls">
+            <!-- 1. 기본 영상 (Intro) -->
+            <button class="vid-btn intro" @click="$emit('openVideo', 'intro')" title="시대 개요 영상">
+              <span class="icon">▶</span>
+              <span class="label">Intro</span>
+            </button>
+
+            <!-- 2. 심화 영상 (Deep) - 클리어 시 해금 -->
+            <button class="vid-btn deep" :class="{ locked: !isCleared }" @click="handleHiddenVideo" title="심화 강의 영상">
+              <span class="icon">{{ isCleared ? '▶' : '🔒' }}</span>
+              <span class="label">Deep</span>
+            </button>
+          </div>
+        </div>
 
         <div class="card-header">
           <div class="main-bible-badge" :class="currentEra.type">
@@ -71,7 +107,8 @@ const hasQuiz = computed(() => {
 
         <!-- 하단 액션 버튼 -->
         <div v-if="!isBookDetail" class="action-area">
-          <button v-if="currentUser && !isCleared && hasQuiz" class="quiz-btn" @click="$emit('startQuiz')">🎯 퀴즈 도전</button>
+          <!-- [수정] 퀴즈 버튼 조건 변경: 상시 노출(데이터있고 클리어 안했으면), 비로그인 시 클릭하면 알럿 -->
+          <button v-if="!isCleared && hasQuiz" class="quiz-btn" :class="currentEra.type" @click="handleQuizClick">🎯</button>
 
           <button @click="$emit('toggleBooks')" class="books-btn" :class="currentEra.type">
             <span>
@@ -283,10 +320,8 @@ const hasQuiz = computed(() => {
         border-radius: 0.3rem;
         vertical-align: middle;
         font-family: 'Noto Sans KR', sans-serif;
-
         @include mobile {
           font-size: 12px;
-          padding: 0.5rem 1rem;
         }
       }
     }
@@ -363,6 +398,10 @@ const hasQuiz = computed(() => {
     gap: 0.75rem;
     flex-wrap: wrap;
 
+    @include mobile {
+      flex-direction: row-reverse;
+    }
+
     .quiz-btn {
       padding: 0.75rem 1.5rem;
       border-radius: 0.75rem;
@@ -380,8 +419,6 @@ const hasQuiz = computed(() => {
         transform: translateY(-2px);
       }
       @include mobile {
-        width: 100%;
-        padding: 1.5rem 0;
         font-size: 14px;
       }
     }
@@ -428,6 +465,93 @@ const hasQuiz = computed(() => {
         &.rotate-180 {
           transform: rotate(180deg);
         }
+      }
+    }
+  }
+}
+
+/* [추가] 새로 추가된 비주얼 및 영상 버튼 스타일 */
+.main-card_visual {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+
+  /* 비주얼 이미지 (모바일용 이미지가 데스크탑에서도 카드의 비주얼로 사용됨) */
+  .mobile-only-img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    margin: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  /* 영상 컨트롤 버튼 컨테이너 (오버레이) */
+  .video-controls {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 5;
+  }
+
+  .vid-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s;
+
+    @include mobile {
+      font-size: 14px;
+      padding: 8px 16px;
+    }
+
+    .icon {
+      font-size: 0.9rem;
+
+      @include mobile {
+        font-size: 14px;
+      }
+    }
+
+    /* Intro 버튼 */
+    &.intro {
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    /* Deep 버튼 (잠김/해제) */
+    &.deep {
+      background: rgba(99, 102, 241, 0.8); /* Indigo */
+      color: white;
+      border-color: #6366f1;
+
+      &:hover {
+        background: #4f46e5;
+      }
+
+      &.locked {
+        background: rgba(0, 0, 0, 0.8);
+        color: #94a3b8;
+        border-color: #475569;
+        cursor: not-allowed;
       }
     }
   }

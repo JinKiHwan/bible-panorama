@@ -2,44 +2,49 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
+
+// [중요] 전역 상태 사용 (헤더와 데이터 동기화)
 import { usePanoramaState } from '@/composables/usePanoramaState';
 
 // Firebase Imports
-import { auth, db, googleProvider } from '@/firebase';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+// DB 저장 및 조회를 위한 Firestore 함수들
+import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 
-// Data & Components Imports
+// Components Imports
 import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
 import QuizModal from '@/components/QuizModal.vue';
+import VideoModal from '@/components/VideoModal.vue'; // [추가]
 
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
 
 // --- State Management ---
-// [변경] 전역 상태 가져오기 (local ref 대체)
-const { eras, progress, currentEraIndex, isIntroDone, isNavOpen, registerScrollTrigger } = usePanoramaState();
+// 전역 상태 가져오기 (isIntroDone 포함)
+const { eras, progress, currentEraIndex, isNavOpen, registerScrollTrigger, isIntroDone } = usePanoramaState();
 
 const wrapper = ref(null);
 const container = ref(null);
-// const currentEraIndex = ref(0); // [제거] 전역 상태 사용
 const isBooksVisible = ref(false);
-// const progress = ref(0); // [제거] 전역 상태 사용
-// const isNavOpen = ref(false); // [제거] 전역 상태 사용
 
 const currentUser = ref(null);
 const selectedBook = ref(null);
 const displayBgUrl = ref('/img/genesis_01.webp');
 const bgImage = ref(null);
 
+// 퀴즈 관련 상태
 const isQuizOpen = ref(false);
-const clearedEras = ref(new Set());
+const clearedEras = ref(new Set()); // 클리어한 시대 ID들을 저장하는 Set
 
-// Data Source
-// const eras = ref(erasData); // [제거] 전역 상태 사용
+// [추가] 영상 모달 관련 상태
+const isVideoOpen = ref(false);
+const currentVideoId = ref('');
+
 const currentEra = computed(() => eras.value[currentEraIndex.value]);
 
+// 현재 시대 클리어 여부 (MainCard에 전달)
 const isCurrentEraCleared = computed(() => {
   return clearedEras.value.has(currentEra.value.id);
 });
@@ -58,6 +63,7 @@ const closeBookDetail = () => {
   if (unsubscribeNotes) unsubscribeNotes();
 };
 
+// 퀴즈 열기/닫기
 const openQuiz = () => {
   isQuizOpen.value = true;
 };
@@ -65,14 +71,33 @@ const closeQuiz = () => {
   isQuizOpen.value = false;
 };
 
-// [참고] 로그인/로그아웃은 이제 AppHeader에서 수행하므로 여기서 로직 제거
-// 단, 클리어 기록 저장/조회를 위해 currentUser 감시는 유지해야 함.
+// [추가] 영상 모달 열기
+const openVideo = (type) => {
+  // bibleData.js에 정의된 videos 객체에서 ID 조회
+  const videoId = currentEra.value.videos?.[type];
 
+  if (videoId) {
+    currentVideoId.value = videoId;
+    isVideoOpen.value = true;
+  } else {
+    alert('준비 중인 영상입니다. 😅', videoId);
+  }
+};
+
+const closeVideo = () => {
+  isVideoOpen.value = false;
+  currentVideoId.value = ''; // 영상 정지
+};
+
+// 퀴즈 만점(성공) 시 DB 저장 로직
 const handleQuizCompleted = async (isSuccess) => {
   if (isSuccess && currentUser.value) {
     const eraId = currentEra.value.id;
     try {
+      // 1. 로컬 상태 즉시 업데이트
       clearedEras.value.add(eraId);
+
+      // 2. DB에 저장
       const docRef = doc(db, 'cleared_status', `${currentUser.value.uid}_${eraId}`);
       await setDoc(docRef, {
         userId: currentUser.value.uid,
@@ -80,7 +105,9 @@ const handleQuizCompleted = async (isSuccess) => {
         eraTitle: currentEra.value.title,
         clearedAt: serverTimestamp(),
       });
+
       closeQuiz();
+      alert('축하합니다! 시대 클리어 배지를 획득했습니다. 🏅');
     } catch (error) {
       console.error('Quiz Save Error:', error);
       alert('결과 저장 중 오류가 발생했습니다.');
@@ -91,10 +118,56 @@ const handleQuizCompleted = async (isSuccess) => {
 // --- Firebase Notes & Clear Status ---
 let unsubscribeNotes = null;
 let unsubscribeClearStatus = null;
+const noteText = ref('');
+const bookNotes = ref([]);
+const isNoteLoading = ref(false);
 
 const subscribeToNotes = (bookName) => {
-  /* ... 기존 로직 ... */
-}; // (기존 코드 유지)
+  if (unsubscribeNotes) unsubscribeNotes();
+  bookNotes.value = [];
+  if (!currentUser.value || !bookName) return;
+
+  isNoteLoading.value = true;
+  const q = query(collection(db, 'meditations'), where('userId', '==', currentUser.value.uid), where('bookName', '==', bookName), orderBy('createdAt', 'desc'));
+
+  unsubscribeNotes = onSnapshot(
+    q,
+    (snapshot) => {
+      bookNotes.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      isNoteLoading.value = false;
+    },
+    (error) => {
+      console.error('Data Fetch Error:', error);
+      isNoteLoading.value = false;
+    },
+  );
+};
+
+const saveNote = async () => {
+  if (!noteText.value.trim() || !currentUser.value || !selectedBook.value) return;
+  try {
+    await addDoc(collection(db, 'meditations'), {
+      userId: currentUser.value.uid,
+      userName: currentUser.value.displayName,
+      bookName: selectedBook.value.name,
+      content: noteText.value,
+      createdAt: serverTimestamp(),
+    });
+    noteText.value = '';
+  } catch (error) {
+    console.error('Save Error:', error);
+    alert('저장 중 오류가 발생했습니다.');
+  }
+};
+
+const deleteNote = async (noteId) => {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  try {
+    await deleteDoc(doc(db, 'meditations', noteId));
+  } catch (error) {
+    console.error('Delete Error:', error);
+  }
+};
 
 watch(currentUser, (user) => {
   if (unsubscribeClearStatus) unsubscribeClearStatus();
@@ -107,18 +180,21 @@ watch(currentUser, (user) => {
       snapshot.forEach((doc) => {
         clears.add(doc.data().eraId);
       });
-      clearedEras.value = clears;
+      clearedEras.value = clears; // Set 업데이트 -> UI 자동 반영
     });
   }
 });
 
 // --- Scroll Logic ---
 const scrollToEra = (index) => {
-  isNavOpen.value = false;
+  isNavOpen.value = false; // 전역 상태 변경
   const isMobile = window.innerWidth < 768;
+
   if (isMobile) {
     const sections = document.querySelectorAll('.era-section');
-    if (sections[index]) sections[index].scrollIntoView({ behavior: 'smooth' });
+    if (sections[index]) {
+      sections[index].scrollIntoView({ behavior: 'smooth' });
+    }
   } else {
     const totalDistance = eras.value.length * 1000;
     const progressRatio = index / (eras.value.length - 1);
@@ -127,7 +203,7 @@ const scrollToEra = (index) => {
   }
 };
 
-// [중요] 스크롤 트리거 함수를 전역 상태에 등록 (헤더에서 호출 가능하게)
+// 헤더에서 호출할 수 있도록 함수 등록
 registerScrollTrigger(scrollToEra);
 
 // --- Watchers ---
@@ -144,18 +220,21 @@ const activeBgUrl = computed(() => {
   return eras.value[currentEraIndex.value].bgURL || '/img/genesis_01.webp';
 });
 
+// 배경 이미지 교체 로직 (GSAP 애니메이션)
 watch(activeBgUrl, (newUrl) => {
   if (displayBgUrl.value === newUrl) return;
   const imgLoader = new Image();
   imgLoader.src = newUrl;
 
-  // GSAP Fade Animation
   if (bgImage.value) {
     gsap.killTweensOf(bgImage.value);
     const tl = gsap.timeline();
     tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' }).call(() => {
-      if (imgLoader.complete) swapAndFadeIn();
-      else imgLoader.onload = swapAndFadeIn;
+      if (imgLoader.complete) {
+        swapAndFadeIn();
+      } else {
+        imgLoader.onload = swapAndFadeIn;
+      }
     });
   } else {
     imgLoader.onload = swapAndFadeIn;
@@ -164,7 +243,9 @@ watch(activeBgUrl, (newUrl) => {
   function swapAndFadeIn() {
     displayBgUrl.value = newUrl;
     setTimeout(() => {
-      if (bgImage.value) gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5, ease: 'power1.in' });
+      if (bgImage.value) {
+        gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5, ease: 'power1.in' });
+      }
     }, 50);
   }
 });
@@ -185,6 +266,7 @@ onMounted(async () => {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
 
+  // Panorama 컴포넌트에서도 유저 정보를 알아야 함 (DB 저장용)
   onAuthStateChanged(auth, (user) => {
     currentUser.value = user;
   });
@@ -212,7 +294,7 @@ onMounted(async () => {
         scrub: 0.1,
         end: `+=${sections.length * 1000}`,
         onUpdate: (self) => {
-          // [중요] 전역 상태 업데이트
+          // 전역 상태 업데이트
           progress.value = Math.round(self.progress * 100);
           const index = Math.round(self.progress * (sections.length - 1));
           if (index !== currentEraIndex.value) currentEraIndex.value = index;
@@ -228,7 +310,7 @@ onMounted(async () => {
       start: 'top top',
       end: 'bottom bottom',
       onUpdate: (self) => {
-        // [중요] 전역 상태 업데이트
+        // 전역 상태 업데이트
         progress.value = Math.round(self.progress * 100);
         const totalEras = eras.value.length - 1;
         const newIndex = Math.round(self.progress * totalEras);
@@ -249,15 +331,14 @@ onUnmounted(() => {
 
 <template>
   <div class="home-container">
-    <!-- 헤더 제거됨 (App.vue에 존재) -->
+    <!-- 헤더는 App.vue에서 관리됨 -->
 
     <div class="wrapper" ref="wrapper">
       <div class="horizontal-scroll-container" ref="container">
         <div v-for="(era, index) in eras" :key="'bg-' + era.id" class="era-section" :id="era.bgKeyword" :class="{ active: currentEraIndex === index }">
           <div class="timeline-graphic">
-            <span :class="{ 'active-anim': isIntroDone }">
-              <i></i>
-            </span>
+            <!-- [유지] active-anim 클래스 (isIntroDone 기반) -->
+            <span :class="{ 'active-anim': isIntroDone }"></span>
           </div>
           <div class="bg-keyword-text">{{ era.bgKeyword }}</div>
           <div class="timeline-dot" :class="era.type"></div>
@@ -265,8 +346,23 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- MainCard -->
-    <MainCard :current-era="currentEra" :selected-book="selectedBook" :is-books-visible="isBooksVisible" :current-user="currentUser" :is-cleared="isCurrentEraCleared" @toggle-books="toggleBooks" @close-book-detail="closeBookDetail" @start-quiz="openQuiz" />
+    <!-- MainCard에 영상 이벤트(@open-video) 추가 연결 -->
+    <MainCard
+      :current-era="currentEra"
+      :selected-book="selectedBook"
+      :is-books-visible="isBooksVisible"
+      :current-user="currentUser"
+      :is-cleared="isCurrentEraCleared"
+      :book-notes="bookNotes"
+      :is-note-loading="isNoteLoading"
+      @toggle-books="toggleBooks"
+      @close-book-detail="closeBookDetail"
+      @start-quiz="openQuiz"
+      @open-video="openVideo"
+      @save-note="saveNote"
+      @delete-note="deleteNote"
+      @update-note-text="(text) => (noteText = text)"
+    />
 
     <div class="bible_bg">
       <figure ref="bgImage">
@@ -276,9 +372,18 @@ onUnmounted(() => {
 
     <BookListPanel :is-visible="isBooksVisible" :current-era="currentEra" :selected-book="selectedBook" @close="isBooksVisible = false" @select-book="selectBook" />
 
+    <!-- 퀴즈 모달 -->
     <transition name="fade">
       <QuizModal v-if="isQuizOpen" :questions="currentEra.quiz || []" :era-title="currentEra.title" @close="closeQuiz" @quiz-completed="handleQuizCompleted" />
     </transition>
+
+    <!-- [추가] 영상 모달 -->
+    <transition name="fade">
+      <VideoModal v-if="isVideoOpen" :video-id="currentVideoId" @close="closeVideo" />
+    </transition>
+
+    <!-- SEO용 숨김 H1 -->
+    <h2 class="seo-hidden">성경 한눈에보기 - 창조부터 요한계시록까지</h2>
 
     <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
   </div>
