@@ -12,10 +12,11 @@ export default defineConfig({
     Sitemap({
       hostname: 'https://bible-panorama.netlify.app',
       exclude: ['/mypage'],
+      generateRobotsTxt: false,
     }),
     VitePWA({
       registerType: 'autoUpdate', // 업데이트 시 자동 새로고침
-      includeAssets: ['favicon.ico', 'img/og-image.jpg'], // 캐싱할 정적 파일
+      includeAssets: ['favicon.ico', 'img/og-image.jpg', 'robots.txt'],
       manifest: {
         name: 'Bible Panorama',
         short_name: 'BiblePanorama',
