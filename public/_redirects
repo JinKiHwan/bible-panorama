@@ -1,6 +1,0 @@
-# 정적 파일들은 그대로 통과 (순서가 중요합니다. 제일 위에 두세요)
-/robots.txt  /robots.txt  200
-/sitemap.xml /sitemap.xml 200
-
-# 나머지는 SPA 라우팅 (모든 경로를 index.html로)
-/* /index.html  200

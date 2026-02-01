@@ -2,6 +2,20 @@
   publish = "dist"
   command = "npm run build"
 
+# [중요] 검색엔진 로봇을 위한 정적 파일 규칙 (SPA 규칙보다 위에 있어야 합니다)
+# 이렇게 명시하면 리다이렉트 없이 해당 파일을 그대로 보여줍니다.
+[[redirects]]
+  from = "/robots.txt"
+  to = "/robots.txt"
+  status = 200
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/sitemap.xml"
+  status = 200
+
+# [기본] SPA 라우팅 설정
+# 위의 규칙에 해당하지 않는 나머지 모든 요청(*)을 index.html로 보냅니다.
 [[redirects]]
   from = "/*"
   to = "/index.html"
