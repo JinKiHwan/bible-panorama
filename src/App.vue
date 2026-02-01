@@ -27,22 +27,22 @@ useHead({
   // 기본 타이틀 설정 (하위 페이지에서 title을 설정하지 않으면 이 값이 나옵니다)
   title: 'Bible Panorama',
   // 타이틀 템플릿: 하위 페이지 타이틀이 있으면 "페이지명 | Bible Panorama" 형태로 표시
-  titleTemplate: (title) => (title ? `${title} | Bible Panorama` : 'Bible Panorama - 성경의 흐름을 한눈에'),
+  titleTemplate: (title) => (title ? `${title} | 성경의 흐름을 한 눈에` : 'Bible Panorama - 성경의 흐름을 한눈에'),
   meta: [
     {
       name: 'description',
-      content: '창조부터 요한계시록까지, 하나님의 구속사를 인터랙티브 타임라인으로 경험하세요.',
+      content: '성경의 흐름을 한 눈에 창조부터 요한계시록까지, 하나님의 구속사를 인터랙티브 타임라인으로 경험하세요.',
     },
     {
       name: 'keywords',
-      content: '창조부터 요한계시록까지, 하나님의 구속사를 인터랙티브 타임라인으로 경험하세요.',
+      content: '성경의 흐름을 한 눈에 창조부터 요한계시록까지, 하나님의 구속사를 인터랙티브 타임라인으로 경험하세요.',
     },
     { name: 'author', content: 'MakeWebWell' },
     // [Open Graph] 카카오톡, 페이스북 공유 시 보여질 정보
     { property: 'og:type', content: 'website' },
     { property: 'og:site_name', content: 'Bible Panorama' },
     { property: 'og:title', content: 'Bible Panorama - 성경의 흐름을 한눈에' },
-    { property: 'og:description', content: '창조부터 요한계시록까지, 하나님의 구속사를 인터랙티브 타임라인으로 경험하세요.' },
+    { property: 'og:description', content: '성경의 흐름을 한 눈에 창조부터 요한계시록까지, 하나님의 구속사를 인터랙티브 타임라인으로 경험하세요.' },
     // 실제 배포 주소로 변경해주세요. (예: https://bible-panorama.netlify.app/img/og-image.jpg)
     { property: 'og:image', content: 'https://bible-panorama.netlify.app/img/og-image.jpg' },
     { property: 'og:url', content: 'https://bible-panorama.netlify.app' },
@@ -50,7 +50,7 @@ useHead({
     // [Twitter]
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: 'Bible Panorama' },
-    { name: 'twitter:description', content: '성경 역사를 한눈에 보는 인터랙티브 웹사이트' },
+    { name: 'twitter:description', content: '성경의 흐름을 한 눈에 성경 역사를 한눈에 보는 인터랙티브 웹사이트' },
     { name: 'twitter:image', content: 'https://bible-panorama.netlify.app/img/og-image.jpg' },
   ],
   link: [{ rel: 'canonical', href: 'https://bible-panorama.netlify.app' }],
