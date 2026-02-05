@@ -502,7 +502,7 @@ const handleQuizClick = () => {
   /* 비주얼 이미지 (모바일용 이미지가 데스크탑에서도 카드의 비주얼로 사용됨) */
     .mobile-only-img {
       width: 100%;
-      min-height: 300px;
+      //min-height: 100px;
       height: auto;
       //max-height: 200px;
       object-fit: cover;
@@ -510,9 +510,9 @@ const handleQuizClick = () => {
       position: relative; /* 스켈레톤 포지셔닝을 위해 */
       background-color: #1e293b; /* 로딩 전 배경색 */
 
-      @include mobile{
-        min-height: 150px;
-      }
+      // @include mobile{
+      //   //min-height: 150px;
+      // }
       
       img {
         width: 100%;
@@ -533,6 +533,7 @@ const handleQuizClick = () => {
         left: 0;
         width: 100%;
         height: 100%;
+        min-height: 300px;
         z-index: 1;
         background: #334155;
         background-image: linear-gradient(
