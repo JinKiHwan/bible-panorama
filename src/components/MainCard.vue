@@ -502,12 +502,17 @@ const handleQuizClick = () => {
   /* 비주얼 이미지 (모바일용 이미지가 데스크탑에서도 카드의 비주얼로 사용됨) */
     .mobile-only-img {
       width: 100%;
+      min-height: 300px;
       height: auto;
       //max-height: 200px;
       object-fit: cover;
       margin: 0;
       position: relative; /* 스켈레톤 포지셔닝을 위해 */
       background-color: #1e293b; /* 로딩 전 배경색 */
+
+      @include mobile{
+        min-height: 150px;
+      }
       
       img {
         width: 100%;
