@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
   currentEra: Object,
@@ -20,19 +20,32 @@ const hasQuiz = computed(() => {
   return !isBookDetail.value && props.currentEra.quiz && props.currentEra.quiz.length > 0;
 });
 
+// [추가] 이미지 로딩 상태 관리
+const isLoading = ref(true);
+
+const handleImageLoad = () => {
+  isLoading.value = false;
+};
+
+// 아이템(시대 또는 책)이 바뀌면 로딩 상태 리셋
+watch(currentItem, () => {
+  isLoading.value = true;
+});
+
 // [추가] 히든(심화) 영상 클릭 핸들러
 const handleHiddenVideo = () => {
   if (props.isCleared) {
+    // 기존 'hidden'을 데이터 키값인 'deep'으로 수정
     emit('openVideo', 'deep');
   } else {
-    alert('이 영상을 보려면 퀴즈를 통과해야 합니다! 🔒');
+    alert("이 영상을 보려면 퀴즈를 통과해야 합니다! 🔒");
   }
 };
 
-// [추가] 퀴즈 버튼 클릭 핸들러
+// 퀴즈 버튼 클릭 핸들러
 const handleQuizClick = () => {
   if (!props.currentUser) {
-    alert('로그인이 필요한 서비스입니다.');
+    alert("로그인이 필요한 서비스입니다.");
     return;
   }
   emit('startQuiz');
@@ -49,11 +62,19 @@ const handleQuizClick = () => {
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-
-        <!-- [수정] 비주얼 영역 및 영상 버튼 추가 -->
+        
         <div class="main-card_visual">
           <figure class="mobile-only-img">
-            <img :src="currentItem.bgURL || '/img/genesis_01.png'" alt="" />
+            <!-- [추가] 스켈레톤 로더 (로딩 중일 때 표시) -->
+            <div v-if="isLoading" class="skeleton-loader"></div>
+            
+            <!-- [수정] 이미지 (로딩 완료 시 표시, 로딩 중엔 투명 처리) -->
+            <img 
+              :src="currentItem.bgURL || '/img/genesis_01.png'" 
+              alt="" 
+              @load="handleImageLoad"
+              :class="{ 'hidden': isLoading }"
+            />
           </figure>
 
           <!-- 시대 정보일 때만 영상 버튼 표시 -->
@@ -63,7 +84,7 @@ const handleQuizClick = () => {
               <span class="icon">▶</span>
               <span class="label">Intro</span>
             </button>
-
+            
             <!-- 2. 심화 영상 (Deep) - 클리어 시 해금 -->
             <button class="vid-btn deep" :class="{ locked: !isCleared }" @click="handleHiddenVideo" title="심화 강의 영상">
               <span class="icon">{{ isCleared ? '▶' : '🔒' }}</span>
@@ -107,8 +128,8 @@ const handleQuizClick = () => {
 
         <!-- 하단 액션 버튼 -->
         <div v-if="!isBookDetail" class="action-area">
-          <!-- [수정] 퀴즈 버튼 조건 변경: 상시 노출(데이터있고 클리어 안했으면), 비로그인 시 클릭하면 알럿 -->
-          <button v-if="!isCleared && hasQuiz" class="quiz-btn" :class="currentEra.type" @click="handleQuizClick">🎯</button>
+          <!-- 퀴즈 버튼 -->
+          <button v-if="!isCleared && hasQuiz" class="quiz-btn" @click="handleQuizClick">🎯 퀴즈 도전</button>
 
           <button @click="$emit('toggleBooks')" class="books-btn" :class="currentEra.type">
             <span>
@@ -479,18 +500,48 @@ const handleQuizClick = () => {
   overflow: hidden;
 
   /* 비주얼 이미지 (모바일용 이미지가 데스크탑에서도 카드의 비주얼로 사용됨) */
-  .mobile-only-img {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-    margin: 0;
-
-    img {
+    .mobile-only-img {
       width: 100%;
-      height: 100%;
+      height: auto;
+      //max-height: 200px;
       object-fit: cover;
+      margin: 0;
+      position: relative; /* 스켈레톤 포지셔닝을 위해 */
+      background-color: #1e293b; /* 로딩 전 배경색 */
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: opacity 0.3s ease;
+        opacity: 1;
+
+        &.hidden {
+          opacity: 0;
+        }
+      }
+
+      /* [추가] 스켈레톤 로더 스타일 */
+      .skeleton-loader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        background: #334155;
+        background-image: linear-gradient(
+          to right,
+          #334155 0%,
+          #475569 20%,
+          #334155 40%,
+          #334155 100%
+        );
+        background-repeat: no-repeat;
+        background-size: 800px 100%;
+        animation: shimmer 1.5s infinite linear forwards;
+      }
     }
-  }
 
   /* 영상 컨트롤 버튼 컨테이너 (오버레이) */
   .video-controls {
