@@ -7,6 +7,11 @@ const props = defineProps({
   isBooksVisible: Boolean,
   currentUser: Object,
   isCleared: Boolean,
+  // [추가] 클리어 횟수 (티어 계산용)
+  clearCount: {
+    type: Number,
+    default: 0
+  }
 });
 
 const emit = defineEmits(['toggleBooks', 'closeBookDetail', 'startQuiz', 'openVideo']);
@@ -17,6 +22,25 @@ const currentItem = computed(() => props.selectedBook || props.currentEra);
 // 퀴즈 데이터 유무 확인
 const hasQuiz = computed(() => {
   return !isBookDetail.value && props.currentEra.quiz && props.currentEra.quiz.length > 0;
+});
+
+// [추가] 티어 이름 계산
+const tierName = computed(() => {
+  const count = props.clearCount;
+  if (count === 1) return '입문자';
+  if (count === 2) return '탐험가';
+  if (count === 3) return '숙련자';
+  if (count === 4) return '전문가';
+  if (count >= 5) return '🏅 마스터';
+  return '';
+});
+
+// [추가] 티어 클래스 계산 (CSS 매핑용)
+const tierClass = computed(() => {
+  if (props.clearCount === 0) return '';
+  // 5단계 이상은 tier-5로 고정
+  const level = Math.min(props.clearCount, 5);
+  return `tier-${level}`;
 });
 
 // 이미지 로딩 상태 관리
@@ -40,14 +64,12 @@ const handleHiddenVideo = () => {
   }
 };
 
-// [수정] 퀴즈 버튼 클릭 핸들러
+// 퀴즈 버튼 클릭 핸들러
 const handleQuizClick = () => {
-  // 로그인하지 않은 경우 알림
   if (!props.currentUser) {
     alert("로그인이 필요한 서비스입니다.");
     return;
   }
-  // 로그인되어 있으면 퀴즈 시작
   emit('startQuiz');
 };
 </script>
@@ -55,7 +77,15 @@ const handleQuizClick = () => {
 <template>
   <div class="fixed-content-layer">
     <transition name="fade" mode="out-in">
-      <div :key="isBookDetail ? 'book-' + currentItem.name : 'era-' + currentItem.id" class="main-card" :class="[currentEra.type, { 'book-detail-card': isBookDetail }, { success: !isBookDetail && isCleared }]">
+      <div 
+        :key="isBookDetail ? 'book-' + currentItem.name : 'era-' + currentItem.id" 
+        class="main-card" 
+        :class="[
+          currentEra.type, 
+          { 'book-detail-card': isBookDetail },
+          tierClass // [추가] 티어에 따른 클래스 동적 부여 (테두리, 그림자 등)
+        ]"
+      >
         <!-- 닫기 버튼 -->
         <button v-if="isBookDetail" class="detail-close-btn" @click="$emit('closeBookDetail')">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -105,7 +135,11 @@ const handleQuizClick = () => {
         <div class="title-area">
           <h2>
             {{ isBookDetail ? currentItem.name : currentItem.title }}
-            <span v-if="!isBookDetail && isCleared" class="clear-badge">🏅 CLEAR</span>
+            
+            <!-- [수정] 클리어 뱃지: 티어 이름 표시 -->
+            <span v-if="!isBookDetail && clearCount > 0" class="clear-badge" :class="tierClass">
+              {{ tierName }}
+            </span>
           </h2>
           <p>{{ isBookDetail ? currentEra.title + ' 시대 배경' : currentItem.subtitle }}</p>
         </div>
@@ -126,11 +160,10 @@ const handleQuizClick = () => {
 
         <!-- 하단 액션 버튼 -->
         <div v-if="!isBookDetail" class="action-area">
-          <!-- [수정] 퀴즈 버튼 -->
-          <!-- 1. !isCleared: 클리어하지 않았을 때만 보임 (클리어하면 사라짐) -->
-          <!-- 2. hasQuiz: 퀴즈 데이터가 있을 때만 보임 -->
-          <!-- 3. @click: handleQuizClick 함수 호출 (비로그인 체크) -->
-          <button v-if="hasQuiz" class="quiz-btn" @click="handleQuizClick">🎯 퀴즈 도전</button>
+          <!-- 퀴즈 버튼 -->
+          <button v-if="hasQuiz" class="quiz-btn" @click="handleQuizClick">
+            {{ clearCount > 0 ? '🎯' : '🎯' }}
+          </button>
 
           <button @click="$emit('toggleBooks')" class="books-btn" :class="currentEra.type">
             <span>
@@ -152,6 +185,13 @@ const handleQuizClick = () => {
 <style lang="scss" scoped>
 @use 'sass:color';
 
+/* 티어별 색상 변수 */
+$tier-1: #94a3b8; /* 입문자 (Slate) */
+$tier-2: #60a5fa; /* 탐험가 (Blue) */
+$tier-3: #a78bfa; /* 숙련자 (Purple) */
+$tier-4: #f87171; /* 전문가 (Red) */
+$tier-5: #fbbf24; /* 마스터 (Gold) */
+
 .fixed-content-layer {
   position: fixed;
   top: 0;
@@ -164,6 +204,10 @@ const handleQuizClick = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  @include mobile {
+    align-items: flex-end;
+    padding-bottom: 2rem;
+  }
 }
 
 .main-card {
@@ -181,6 +225,7 @@ const handleQuizClick = () => {
   position: relative;
   overflow: hidden;
   z-index: 0;
+  
   @include mobile {
     width: 95%;
     padding: 2rem;
@@ -189,20 +234,19 @@ const handleQuizClick = () => {
     margin-bottom: 5vh;
   }
 
-  /* 성공(Clear) 상태 스타일 */
-  &.success {
-    border-color: #fbbf24;
-    box-shadow:
-      0 0 30px rgba(251, 191, 36, 0.2),
-      0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  }
-
   &.book-detail-card {
     max-height: 80vh;
     @include mobile {
       max-height: 75vh;
     }
   }
+
+  /* --- [추가] 티어별 카드 스타일 (테두리 & 그림자) --- */
+  &.tier-1 { border-color: $tier-1; box-shadow: 0 0 20px rgba($tier-1, 0.2), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+  &.tier-2 { border-color: $tier-2; box-shadow: 0 0 25px rgba($tier-2, 0.25), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+  &.tier-3 { border-color: $tier-3; box-shadow: 0 0 25px rgba($tier-3, 0.25), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+  &.tier-4 { border-color: $tier-4; box-shadow: 0 0 30px rgba($tier-4, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+  &.tier-5 { border-color: $tier-5; box-shadow: 0 0 30px rgba($tier-5, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
 
   /* 네온 및 배경 스타일 */
   &::after {
@@ -231,10 +275,12 @@ const handleQuizClick = () => {
     background: conic-gradient(transparent, rgba($nt-color, 0.5), transparent 30%);
   }
 
-  /* 성공 시 네온 색상 */
-  &.success::after {
-    background: conic-gradient(transparent, rgba(251, 191, 36, 0.8), transparent 30%);
-  }
+  /* --- [추가] 티어별 네온 색상 변경 --- */
+  &.tier-1::after { background: conic-gradient(transparent, rgba($tier-1, 0.5), transparent 30%); }
+  &.tier-2::after { background: conic-gradient(transparent, rgba($tier-2, 0.6), transparent 30%); }
+  &.tier-3::after { background: conic-gradient(transparent, rgba($tier-3, 0.7), transparent 30%); }
+  &.tier-4::after { background: conic-gradient(transparent, rgba($tier-4, 0.8), transparent 30%); }
+  &.tier-5::after { background: conic-gradient(transparent, rgba($tier-5, 0.8), transparent 30%); }
 
   @keyframes rotate {
     100% {
@@ -262,6 +308,120 @@ const handleQuizClick = () => {
     }
     &:hover {
       color: white;
+    }
+  }
+
+  .main-card_visual {
+    position: relative;
+    width: 100%;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+
+    .mobile-only-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      margin: 0;
+      position: relative;
+      background-color: #1e293b;
+
+      @include mobile {
+        height: 180px;
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: opacity 0.3s ease;
+        opacity: 1;
+
+        &.hidden {
+          opacity: 0;
+        }
+      }
+
+      .skeleton-loader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        background: #334155;
+        background-image: linear-gradient(
+          to right,
+          #334155 0%,
+          #475569 20%,
+          #334155 40%,
+          #334155 100%
+        );
+        background-repeat: no-repeat;
+        background-size: 800px 100%;
+        animation: shimmer 1.5s infinite linear forwards;
+      }
+    }
+
+    .video-controls {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 5;
+    }
+
+    .vid-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s;
+
+      @include mobile {
+        font-size: 14px;
+        padding: 8px 16px;
+      }
+
+      .icon {
+        font-size: 0.9rem;
+
+        @include mobile {
+          font-size: 14px;
+        }
+      }
+
+      &.intro {
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+
+      &.deep {
+        background: rgba(99, 102, 241, 0.8);
+        color: white;
+        border-color: #6366f1;
+
+        &:hover {
+          background: #4f46e5;
+        }
+
+        &.locked {
+          background: rgba(0, 0, 0, 0.8);
+          color: #94a3b8;
+          border-color: #475569;
+          cursor: not-allowed;
+        }
+      }
     }
   }
 
@@ -334,17 +494,26 @@ const handleQuizClick = () => {
         font-size: 22px;
         margin-bottom: 10px;
       }
+      
+      /* [수정] 뱃지 스타일: 티어별 색상 적용 */
       .clear-badge {
         font-size: 1rem;
-        background: #fbbf24;
         color: #000;
         padding: 0.2rem 0.5rem;
         border-radius: 0.3rem;
         vertical-align: middle;
         font-family: 'Noto Sans KR', sans-serif;
+        background: #94a3b8; /* 기본값 */
+
         @include mobile {
           font-size: 12px;
         }
+
+        &.tier-1 { background: $tier-1; }
+        &.tier-2 { background: $tier-2; }
+        &.tier-3 { background: $tier-3; }
+        &.tier-4 { background: $tier-4; }
+        &.tier-5 { background: $tier-5; }
       }
     }
     p {
@@ -420,10 +589,6 @@ const handleQuizClick = () => {
     gap: 0.75rem;
     flex-wrap: wrap;
 
-    @include mobile {
-      flex-direction: row-reverse;
-    }
-
     .quiz-btn {
       padding: 0.75rem 1.5rem;
       border-radius: 0.75rem;
@@ -441,6 +606,7 @@ const handleQuizClick = () => {
         transform: translateY(-2px);
       }
       @include mobile {
+        //width: 100%;
         font-size: 14px;
       }
     }
@@ -462,13 +628,13 @@ const handleQuizClick = () => {
       border: none;
       cursor: pointer;
       &:hover {
-        background: linear-gradient(to right, color.adjust($ot-color, $lightness: -5%), color.adjust(#047a8f, $lightness: -5%));
+        background: linear-gradient(to right, color.adjust($ot-color, $lightness: - 5%), color.adjust(#047a8f, $lightness: - 5%));
       }
       &.NT {
         background: linear-gradient(to right, $nt-color, #9f2a3d);
         box-shadow: 0 10px 15px -3px rgba($nt-color, 0.25);
         &:hover {
-          background: linear-gradient(to right, color.adjust($nt-color, $lightness: -5%), color.adjust(#9f2a3d, $lightness: -5%));
+          background: linear-gradient(to right, color.adjust($nt-color, $lightness: - 5%), color.adjust(#9f2a3d, $lightness: - 5%));
         }
       }
       @include mobile {
@@ -492,126 +658,12 @@ const handleQuizClick = () => {
   }
 }
 
-/* [추가] 새로 추가된 비주얼 및 영상 버튼 스타일 */
-.main-card_visual {
-  position: relative;
-  width: 100%;
-  margin-bottom: 1rem;
-  border-radius: 0.5rem;
-  overflow: hidden;
-
-  /* 비주얼 이미지 (모바일용 이미지가 데스크탑에서도 카드의 비주얼로 사용됨) */
-    .mobile-only-img {
-      width: 100%;
-      //min-height: 100px;
-      height: auto;
-      //max-height: 200px;
-      object-fit: cover;
-      margin: 0;
-      position: relative; /* 스켈레톤 포지셔닝을 위해 */
-      background-color: #1e293b; /* 로딩 전 배경색 */
-
-      // @include mobile{
-      //   //min-height: 150px;
-      // }
-      
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: opacity 0.3s ease;
-        opacity: 1;
-
-        &.hidden {
-          opacity: 0;
-        }
-      }
-
-      /* [추가] 스켈레톤 로더 스타일 */
-      .skeleton-loader {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        min-height: 300px;
-        z-index: 1;
-        background: #334155;
-        background-image: linear-gradient(
-          to right,
-          #334155 0%,
-          #475569 20%,
-          #334155 40%,
-          #334155 100%
-        );
-        background-repeat: no-repeat;
-        background-size: 800px 100%;
-        animation: shimmer 1.5s infinite linear forwards;
-      }
-    }
-
-  /* 영상 컨트롤 버튼 컨테이너 (오버레이) */
-  .video-controls {
-    position: absolute;
-    bottom: 0.5rem;
-    right: 0.5rem;
-    display: flex;
-    gap: 0.5rem;
-    z-index: 5;
+@keyframes shimmer {
+  0% {
+    background-position: -800px 0;
   }
-
-  .vid-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.4rem 0.8rem;
-    border-radius: 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-    transition: all 0.2s;
-
-    @include mobile {
-      font-size: 14px;
-      padding: 8px 16px;
-    }
-
-    .icon {
-      font-size: 0.9rem;
-
-      @include mobile {
-        font-size: 14px;
-      }
-    }
-
-    /* Intro 버튼 */
-    &.intro {
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-    }
-
-    /* Deep 버튼 (잠김/해제) */
-    &.deep {
-      background: rgba(99, 102, 241, 0.8); /* Indigo */
-      color: white;
-      border-color: #6366f1;
-
-      &:hover {
-        background: #4f46e5;
-      }
-
-      &.locked {
-        background: rgba(0, 0, 0, 0.8);
-        color: #94a3b8;
-        border-color: #475569;
-        cursor: not-allowed;
-      }
-    }
+  100% {
+    background-position: 800px 0;
   }
 }
 
