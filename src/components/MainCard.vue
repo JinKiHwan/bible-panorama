@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { usePanoramaState } from '@/composables/usePanoramaState';
+
+const { isIntroDone } = usePanoramaState();
 
 const props = defineProps({
   currentEra: Object,
@@ -10,8 +13,8 @@ const props = defineProps({
   // [추가] 클리어 횟수 (티어 계산용)
   clearCount: {
     type: Number,
-    default: 0
-  }
+    default: 0,
+  },
 });
 
 const emit = defineEmits(['toggleBooks', 'closeBookDetail', 'startQuiz', 'openVideo']);
@@ -60,14 +63,14 @@ const handleHiddenVideo = () => {
   if (props.isCleared) {
     emit('openVideo', 'deep');
   } else {
-    alert("이 영상을 보려면 퀴즈를 통과해야 합니다! 🔒");
+    alert('이 영상을 보려면 퀴즈를 통과해야 합니다! 🔒');
   }
 };
 
 // 퀴즈 버튼 클릭 핸들러
 const handleQuizClick = () => {
   if (!props.currentUser) {
-    alert("로그인이 필요한 서비스입니다.");
+    alert('로그인이 필요한 서비스입니다.');
     return;
   }
   emit('startQuiz');
@@ -77,34 +80,21 @@ const handleQuizClick = () => {
 <template>
   <div class="fixed-content-layer">
     <transition name="fade" mode="out-in">
-      <div 
-        :key="isBookDetail ? 'book-' + currentItem.name : 'era-' + currentItem.id" 
-        class="main-card" 
-        :class="[
-          currentEra.type, 
-          { 'book-detail-card': isBookDetail },
-          tierClass // [추가] 티어에 따른 클래스 동적 부여 (테두리, 그림자 등)
-        ]"
-      >
+      <div :key="isBookDetail ? 'book-' + currentItem.name : 'era-' + currentItem.id" class="main-card" :class="[currentEra.type, { 'book-detail-card': isBookDetail }, tierClass, { play: isIntroDone }]">
         <!-- 닫기 버튼 -->
         <button v-if="isBookDetail" class="detail-close-btn" @click="$emit('closeBookDetail')">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        
+
         <div class="main-card_visual">
           <figure class="mobile-only-img">
             <!-- 스켈레톤 로더 -->
             <div v-if="isLoading" class="skeleton-loader"></div>
-            
+
             <!-- 이미지 -->
-            <img 
-              :src="currentItem.bgURL || '/img/genesis_01.png'" 
-              alt="" 
-              @load="handleImageLoad"
-              :class="{ 'hidden': isLoading }"
-            />
+            <img :src="currentItem.bgURL || '/img/genesis_01.png'" alt="" @load="handleImageLoad" :class="{ hidden: isLoading }" />
           </figure>
 
           <!-- 시대 정보일 때만 영상 버튼 표시 -->
@@ -113,7 +103,7 @@ const handleQuizClick = () => {
               <span class="icon">▶</span>
               <span class="label">Intro</span>
             </button>
-            
+
             <button class="vid-btn deep" :class="{ locked: !isCleared }" @click="handleHiddenVideo" title="심화 강의 영상">
               <span class="icon">{{ isCleared ? '▶' : '🔒' }}</span>
               <span class="label">Deep</span>
@@ -135,7 +125,7 @@ const handleQuizClick = () => {
         <div class="title-area">
           <h2>
             {{ isBookDetail ? currentItem.name : currentItem.title }}
-            
+
             <!-- [수정] 클리어 뱃지: 티어 이름 표시 -->
             <span v-if="!isBookDetail && clearCount > 0" class="clear-badge" :class="tierClass">
               {{ tierName }}
@@ -221,7 +211,8 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
   position: relative;
   overflow: hidden;
   z-index: 0;
-  
+  visibility: hidden;
+
   @include mobile {
     width: 90%;
     padding: 2rem;
@@ -238,11 +229,36 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
   }
 
   /* --- [추가] 티어별 카드 스타일 (테두리 & 그림자) --- */
-  &.tier-1 { border-color: $tier-1; box-shadow: 0 0 20px rgba($tier-1, 0.2), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-  &.tier-2 { border-color: $tier-2; box-shadow: 0 0 25px rgba($tier-2, 0.25), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-  &.tier-3 { border-color: $tier-3; box-shadow: 0 0 25px rgba($tier-3, 0.25), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-  &.tier-4 { border-color: $tier-4; box-shadow: 0 0 30px rgba($tier-4, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-  &.tier-5 { border-color: $tier-5; box-shadow: 0 0 30px rgba($tier-5, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+  &.tier-1 {
+    border-color: $tier-1;
+    box-shadow:
+      0 0 20px rgba($tier-1, 0.2),
+      0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+  &.tier-2 {
+    border-color: $tier-2;
+    box-shadow:
+      0 0 25px rgba($tier-2, 0.25),
+      0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+  &.tier-3 {
+    border-color: $tier-3;
+    box-shadow:
+      0 0 25px rgba($tier-3, 0.25),
+      0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+  &.tier-4 {
+    border-color: $tier-4;
+    box-shadow:
+      0 0 30px rgba($tier-4, 0.3),
+      0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+  &.tier-5 {
+    border-color: $tier-5;
+    box-shadow:
+      0 0 30px rgba($tier-5, 0.3),
+      0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
 
   /* 네온 및 배경 스타일 */
   &::after {
@@ -254,9 +270,16 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
     width: 200%;
     height: 200%;
     background: conic-gradient(transparent, rgba($ot-color, 0.5), transparent 30%);
-    animation: rotate 4s linear infinite;
+
     pointer-events: none;
     transition: all 0.25s;
+  }
+
+  &.play {
+    visibility: visible;
+    &::after {
+      animation: rotate 4s linear infinite;
+    }
   }
   &::before {
     content: '';
@@ -272,11 +295,21 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
   }
 
   /* --- [추가] 티어별 네온 색상 변경 --- */
-  &.tier-1::after { background: conic-gradient(transparent, rgba($tier-1, 0.5), transparent 30%); }
-  &.tier-2::after { background: conic-gradient(transparent, rgba($tier-2, 0.6), transparent 30%); }
-  &.tier-3::after { background: conic-gradient(transparent, rgba($tier-3, 0.7), transparent 30%); }
-  &.tier-4::after { background: conic-gradient(transparent, rgba($tier-4, 0.8), transparent 30%); }
-  &.tier-5::after { background: conic-gradient(transparent, rgba($tier-5, 0.8), transparent 30%); }
+  &.tier-1::after {
+    background: conic-gradient(transparent, rgba($tier-1, 0.5), transparent 30%);
+  }
+  &.tier-2::after {
+    background: conic-gradient(transparent, rgba($tier-2, 0.6), transparent 30%);
+  }
+  &.tier-3::after {
+    background: conic-gradient(transparent, rgba($tier-3, 0.7), transparent 30%);
+  }
+  &.tier-4::after {
+    background: conic-gradient(transparent, rgba($tier-4, 0.8), transparent 30%);
+  }
+  &.tier-5::after {
+    background: conic-gradient(transparent, rgba($tier-5, 0.8), transparent 30%);
+  }
 
   @keyframes rotate {
     100% {
@@ -346,13 +379,7 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
         height: 100%;
         z-index: 1;
         background: #334155;
-        background-image: linear-gradient(
-          to right,
-          #334155 0%,
-          #475569 20%,
-          #334155 40%,
-          #334155 100%
-        );
+        background-image: linear-gradient(to right, #334155 0%, #475569 20%, #334155 40%, #334155 100%);
         background-repeat: no-repeat;
         background-size: 800px 100%;
         animation: shimmer 1.5s infinite linear forwards;
@@ -491,7 +518,7 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
         margin-bottom: 10px;
         gap: 8px;
       }
-      
+
       /* [수정] 뱃지 스타일: 티어별 색상 적용 */
       .clear-badge {
         font-size: 1rem;
@@ -507,11 +534,21 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
           font-size: 12px;
         }
 
-        &.tier-1 { background: $tier-1; }
-        &.tier-2 { background: $tier-2; }
-        &.tier-3 { background: $tier-3; }
-        &.tier-4 { background: $tier-4; }
-        &.tier-5 { background: $tier-5; }
+        &.tier-1 {
+          background: $tier-1;
+        }
+        &.tier-2 {
+          background: $tier-2;
+        }
+        &.tier-3 {
+          background: $tier-3;
+        }
+        &.tier-4 {
+          background: $tier-4;
+        }
+        &.tier-5 {
+          background: $tier-5;
+        }
       }
     }
     p {
