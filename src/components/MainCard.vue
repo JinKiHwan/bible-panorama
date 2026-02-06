@@ -9,7 +9,6 @@ const props = defineProps({
   isCleared: Boolean,
 });
 
-// [수정] openVideo 이벤트 추가
 const emit = defineEmits(['toggleBooks', 'closeBookDetail', 'startQuiz', 'openVideo']);
 
 const isBookDetail = computed(() => !!props.selectedBook);
@@ -20,7 +19,7 @@ const hasQuiz = computed(() => {
   return !isBookDetail.value && props.currentEra.quiz && props.currentEra.quiz.length > 0;
 });
 
-// [추가] 이미지 로딩 상태 관리
+// 이미지 로딩 상태 관리
 const isLoading = ref(true);
 
 const handleImageLoad = () => {
@@ -32,22 +31,23 @@ watch(currentItem, () => {
   isLoading.value = true;
 });
 
-// [추가] 히든(심화) 영상 클릭 핸들러
+// 히든(심화) 영상 클릭 핸들러
 const handleHiddenVideo = () => {
   if (props.isCleared) {
-    // 기존 'hidden'을 데이터 키값인 'deep'으로 수정
     emit('openVideo', 'deep');
   } else {
     alert("이 영상을 보려면 퀴즈를 통과해야 합니다! 🔒");
   }
 };
 
-// 퀴즈 버튼 클릭 핸들러
+// [수정] 퀴즈 버튼 클릭 핸들러
 const handleQuizClick = () => {
+  // 로그인하지 않은 경우 알림
   if (!props.currentUser) {
     alert("로그인이 필요한 서비스입니다.");
     return;
   }
+  // 로그인되어 있으면 퀴즈 시작
   emit('startQuiz');
 };
 </script>
@@ -65,10 +65,10 @@ const handleQuizClick = () => {
         
         <div class="main-card_visual">
           <figure class="mobile-only-img">
-            <!-- [추가] 스켈레톤 로더 (로딩 중일 때 표시) -->
+            <!-- 스켈레톤 로더 -->
             <div v-if="isLoading" class="skeleton-loader"></div>
             
-            <!-- [수정] 이미지 (로딩 완료 시 표시, 로딩 중엔 투명 처리) -->
+            <!-- 이미지 -->
             <img 
               :src="currentItem.bgURL || '/img/genesis_01.png'" 
               alt="" 
@@ -79,13 +79,11 @@ const handleQuizClick = () => {
 
           <!-- 시대 정보일 때만 영상 버튼 표시 -->
           <div v-if="!isBookDetail" class="video-controls">
-            <!-- 1. 기본 영상 (Intro) -->
             <button class="vid-btn intro" @click="$emit('openVideo', 'intro')" title="시대 개요 영상">
               <span class="icon">▶</span>
               <span class="label">Intro</span>
             </button>
             
-            <!-- 2. 심화 영상 (Deep) - 클리어 시 해금 -->
             <button class="vid-btn deep" :class="{ locked: !isCleared }" @click="handleHiddenVideo" title="심화 강의 영상">
               <span class="icon">{{ isCleared ? '▶' : '🔒' }}</span>
               <span class="label">Deep</span>
@@ -128,8 +126,11 @@ const handleQuizClick = () => {
 
         <!-- 하단 액션 버튼 -->
         <div v-if="!isBookDetail" class="action-area">
-          <!-- 퀴즈 버튼 -->
-          <button v-if="!isCleared && hasQuiz" class="quiz-btn" @click="handleQuizClick">🎯 퀴즈 도전</button>
+          <!-- [수정] 퀴즈 버튼 -->
+          <!-- 1. !isCleared: 클리어하지 않았을 때만 보임 (클리어하면 사라짐) -->
+          <!-- 2. hasQuiz: 퀴즈 데이터가 있을 때만 보임 -->
+          <!-- 3. @click: handleQuizClick 함수 호출 (비로그인 체크) -->
+          <button v-if="hasQuiz" class="quiz-btn" @click="handleQuizClick">🎯 퀴즈 도전</button>
 
           <button @click="$emit('toggleBooks')" class="books-btn" :class="currentEra.type">
             <span>

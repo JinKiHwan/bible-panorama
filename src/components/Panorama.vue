@@ -3,51 +3,68 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 
-// [중요] 전역 상태 사용 (헤더와 데이터 동기화)
+// [중요] 전역 상태 사용
 import { usePanoramaState } from '@/composables/usePanoramaState';
 
 // Firebase Imports
 import { auth, db } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-// DB 저장 및 조회를 위한 Firestore 함수들
-import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
+// [수정] DB 저장에 필요한 increment, arrayUnion 추가 import
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  setDoc, 
+  doc, 
+  serverTimestamp, 
+  increment, 
+  arrayUnion 
+} from 'firebase/firestore';
 
 // Components Imports
 import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
 import QuizModal from '@/components/QuizModal.vue';
-import VideoModal from '@/components/VideoModal.vue'; // [추가]
+import VideoModal from '@/components/VideoModal.vue';
 
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
 
 // --- State Management ---
-// 전역 상태 가져오기 (isIntroDone 포함)
+// 전역 상태 가져오기
 const { eras, progress, currentEraIndex, isNavOpen, registerScrollTrigger, isIntroDone } = usePanoramaState();
 
 const wrapper = ref(null);
 const container = ref(null);
 const isBooksVisible = ref(false);
 
-const currentUser = ref(null);
+const currentUser = ref(null); 
 const selectedBook = ref(null);
 const displayBgUrl = ref('/img/genesis_01.webp');
 const bgImage = ref(null);
 
 // 퀴즈 관련 상태
 const isQuizOpen = ref(false);
-const clearedEras = ref(new Set()); // 클리어한 시대 ID들을 저장하는 Set
+const activeQuizList = ref([]); // [추가] 실제 풀게 될 5문제 리스트
+const clearedEras = ref(new Set()); // 클리어한 시대 ID 목록
+const eraProgressMap = ref(new Map()); // [추가] 시대별 진행 상황 (푼 문제 관리용)
 
-// [추가] 영상 모달 관련 상태
+// 영상 모달 관련 상태
 const isVideoOpen = ref(false);
 const currentVideoId = ref('');
 
 const currentEra = computed(() => eras.value[currentEraIndex.value]);
 
-// 현재 시대 클리어 여부 (MainCard에 전달)
-const isCurrentEraCleared = computed(() => {
-  return clearedEras.value.has(currentEra.value.id);
+// 현재 시대 클리어 횟수 (MainCard 전달용)
+const currentEraClearCount = computed(() => {
+  const progress = eraProgressMap.value.get(currentEra.value.id);
+  return progress ? progress.clearCount : 0;
 });
+
+// 최소 1회 이상 클리어 여부
+const isCurrentEraCleared = computed(() => currentEraClearCount.value > 0);
+
 
 // --- Actions ---
 const toggleBooks = () => (isBooksVisible.value = !isBooksVisible.value);
@@ -63,61 +80,96 @@ const closeBookDetail = () => {
   if (unsubscribeNotes) unsubscribeNotes();
 };
 
-// 퀴즈 열기/닫기
+// [수정] 퀴즈 열기 (랜덤 출제 로직 적용)
 const openQuiz = () => {
+  if (!currentEra.value.quiz || currentEra.value.quiz.length === 0) {
+    alert("준비된 문제가 없습니다.");
+    return;
+  }
+
+  // 1. 현재 시대의 모든 문제
+  const allQuizzes = currentEra.value.quiz;
+  
+  // 2. 내가 이미 푼 문제 ID 목록 가져오기
+  const myProgress = eraProgressMap.value.get(currentEra.value.id);
+  const solvedIds = myProgress ? myProgress.solvedIds : [];
+
+  // 3. 안 푼 문제 필터링
+  const unsolvedQuizzes = allQuizzes.filter(q => !solvedIds.includes(q.id));
+
+  let targetPool = [];
+  // 4. 문제가 부족하면(다 풀었거나 5개 미만 남음) 전체에서, 충분하면 안 푼 문제에서 출제
+  if (unsolvedQuizzes.length < 5) {
+    targetPool = [...allQuizzes]; // 전체 문제 풀 사용 (복습)
+  } else {
+    targetPool = [...unsolvedQuizzes]; // 안 푼 문제 풀 사용
+  }
+
+  // 5. 랜덤 5문제 추출
+  const shuffled = targetPool.sort(() => 0.5 - Math.random());
+  activeQuizList.value = shuffled.slice(0, 5);
+
   isQuizOpen.value = true;
 };
-const closeQuiz = () => {
-  isQuizOpen.value = false;
+
+const closeQuiz = () => { isQuizOpen.value = false; };
+
+// [수정] 퀴즈 만점(성공) 시 DB 저장 로직 (user_progress 컬렉션 사용)
+const handleQuizCompleted = async (isSuccess) => {
+  if (isSuccess && currentUser.value) {
+    const eraId = currentEra.value.id;
+    // 이번에 푼 문제들의 ID 추출
+    const solvedIdsInThisSession = activeQuizList.value.map(q => q.id);
+
+    // [수정] DB 업데이트 전 현재 횟수를 미리 저장 (리스너에 의한 중복 카운트 방지)
+    const previousCount = eraProgressMap.value.get(eraId)?.clearCount || 0;
+
+    try {
+      // 문서 ID: 유저ID_시대ID
+      const docRef = doc(db, 'user_progress', `${currentUser.value.uid}_${eraId}`);
+      
+      // merge: true 옵션으로 문서가 없으면 생성, 있으면 업데이트
+      await setDoc(docRef, {
+        userId: currentUser.value.uid,
+        eraId: eraId,
+        eraTitle: currentEra.value.title,
+        clearCount: increment(1), // 클리어 횟수 1 증가
+        solvedQuizIds: arrayUnion(...solvedIdsInThisSession), // 푼 문제 ID 추가 (중복 자동 제거)
+        lastClearedAt: serverTimestamp()
+      }, { merge: true });
+      
+      closeQuiz();
+      
+      // [수정] 미리 저장해둔 횟수에 1을 더해 표시
+      alert(`축하합니다! 퀴즈를 모두 맞추셨습니다. 🏅 (누적 ${previousCount + 1}회)`);
+
+    } catch (error) {
+      console.error("Quiz Save Error:", error);
+      alert(`결과 저장 중 오류가 발생했습니다.\n(${error.message})`);
+    }
+  }
 };
 
-// [추가] 영상 모달 열기
+// [수정] 영상 모달 열기
 const openVideo = (type) => {
-  // bibleData.js에 정의된 videos 객체에서 ID 조회
   const videoId = currentEra.value.videos?.[type];
-
   if (videoId) {
     currentVideoId.value = videoId;
     isVideoOpen.value = true;
   } else {
-    alert('준비 중인 영상입니다. 😅', videoId);
+    alert("준비 중인 영상입니다. 😅");
   }
 };
 
 const closeVideo = () => {
   isVideoOpen.value = false;
-  currentVideoId.value = ''; // 영상 정지
+  currentVideoId.value = '';
 };
 
-// 퀴즈 만점(성공) 시 DB 저장 로직
-const handleQuizCompleted = async (isSuccess) => {
-  if (isSuccess && currentUser.value) {
-    const eraId = currentEra.value.id;
-    try {
-      // 1. 로컬 상태 즉시 업데이트
-      clearedEras.value.add(eraId);
 
-      // 2. DB에 저장
-      const docRef = doc(db, 'cleared_status', `${currentUser.value.uid}_${eraId}`);
-      await setDoc(docRef, {
-        userId: currentUser.value.uid,
-        eraId: eraId,
-        eraTitle: currentEra.value.title,
-        clearedAt: serverTimestamp(),
-      });
-
-      closeQuiz();
-      alert('축하합니다! 시대 클리어 배지를 획득했습니다. 🏅');
-    } catch (error) {
-      console.error('Quiz Save Error:', error);
-      alert('결과 저장 중 오류가 발생했습니다.');
-    }
-  }
-};
-
-// --- Firebase Notes & Clear Status ---
+// --- Firebase Listeners ---
 let unsubscribeNotes = null;
-let unsubscribeClearStatus = null;
+let unsubscribeProgress = null; // 이름 변경: ClearStatus -> Progress
 const noteText = ref('');
 const bookNotes = ref([]);
 const isNoteLoading = ref(false);
@@ -128,19 +180,20 @@ const subscribeToNotes = (bookName) => {
   if (!currentUser.value || !bookName) return;
 
   isNoteLoading.value = true;
-  const q = query(collection(db, 'meditations'), where('userId', '==', currentUser.value.uid), where('bookName', '==', bookName), orderBy('createdAt', 'desc'));
-
-  unsubscribeNotes = onSnapshot(
-    q,
-    (snapshot) => {
-      bookNotes.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      isNoteLoading.value = false;
-    },
-    (error) => {
-      console.error('Data Fetch Error:', error);
-      isNoteLoading.value = false;
-    },
+  const q = query(
+    collection(db, 'meditations'),
+    where('userId', '==', currentUser.value.uid),
+    where('bookName', '==', bookName),
+    orderBy('createdAt', 'desc')
   );
+
+  unsubscribeNotes = onSnapshot(q, (snapshot) => {
+    bookNotes.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    isNoteLoading.value = false;
+  }, (error) => {
+    console.error("Data Fetch Error:", error);
+    isNoteLoading.value = false;
+  });
 };
 
 const saveNote = async () => {
@@ -155,41 +208,57 @@ const saveNote = async () => {
     });
     noteText.value = '';
   } catch (error) {
-    console.error('Save Error:', error);
-    alert('저장 중 오류가 발생했습니다.');
+    console.error("Save Error:", error);
+    alert("저장 중 오류가 발생했습니다.");
   }
 };
 
 const deleteNote = async (noteId) => {
-  if (!confirm('정말 삭제하시겠습니까?')) return;
+  if (!confirm("정말 삭제하시겠습니까?")) return;
   try {
     await deleteDoc(doc(db, 'meditations', noteId));
   } catch (error) {
-    console.error('Delete Error:', error);
+    console.error("Delete Error:", error);
   }
 };
 
+// [수정] 유저 진행 상황(Progress) 구독 - user_progress 컬렉션
 watch(currentUser, (user) => {
-  if (unsubscribeClearStatus) unsubscribeClearStatus();
+  if (unsubscribeProgress) unsubscribeProgress();
+  eraProgressMap.value.clear();
   clearedEras.value.clear();
 
   if (user) {
-    const q = query(collection(db, 'cleared_status'), where('userId', '==', user.uid));
-    unsubscribeClearStatus = onSnapshot(q, (snapshot) => {
+    const q = query(collection(db, 'user_progress'), where('userId', '==', user.uid));
+    
+    unsubscribeProgress = onSnapshot(q, (snapshot) => {
+      const newMap = new Map();
       const clears = new Set();
-      snapshot.forEach((doc) => {
-        clears.add(doc.data().eraId);
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        newMap.set(data.eraId, {
+          clearCount: data.clearCount || 0,
+          solvedIds: data.solvedQuizIds || []
+        });
+        
+        // 1회 이상 클리어 시 클리어 목록에 추가
+        if ((data.clearCount || 0) > 0) {
+          clears.add(data.eraId);
+        }
       });
-      clearedEras.value = clears; // Set 업데이트 -> UI 자동 반영
+      
+      eraProgressMap.value = newMap;
+      clearedEras.value = clears; // MainCard isCurrentEraCleared 계산용
     });
   }
 });
 
 // --- Scroll Logic ---
 const scrollToEra = (index) => {
-  isNavOpen.value = false; // 전역 상태 변경
+  isNavOpen.value = false;
   const isMobile = window.innerWidth < 768;
-
+  
   if (isMobile) {
     const sections = document.querySelectorAll('.era-section');
     if (sections[index]) {
@@ -229,13 +298,14 @@ watch(activeBgUrl, (newUrl) => {
   if (bgImage.value) {
     gsap.killTweensOf(bgImage.value);
     const tl = gsap.timeline();
-    tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' }).call(() => {
-      if (imgLoader.complete) {
-        swapAndFadeIn();
-      } else {
-        imgLoader.onload = swapAndFadeIn;
-      }
-    });
+    tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' })
+      .call(() => {
+        if (imgLoader.complete) {
+          swapAndFadeIn();
+        } else {
+          imgLoader.onload = swapAndFadeIn;
+        }
+      });
   } else {
     imgLoader.onload = swapAndFadeIn;
   }
@@ -267,9 +337,7 @@ onMounted(async () => {
   window.scrollTo(0, 0);
 
   // Panorama 컴포넌트에서도 유저 정보를 알아야 함 (DB 저장용)
-  onAuthStateChanged(auth, (user) => {
-    currentUser.value = user;
-  });
+  onAuthStateChanged(auth, (user) => { currentUser.value = user; });
 
   preloadImages();
   displayBgUrl.value = eras.value[0].bgURL || '/img/genesis_01.webp';
@@ -294,7 +362,6 @@ onMounted(async () => {
         scrub: 0.1,
         end: `+=${sections.length * 1000}`,
         onUpdate: (self) => {
-          // 전역 상태 업데이트
           progress.value = Math.round(self.progress * 100);
           const index = Math.round(self.progress * (sections.length - 1));
           if (index !== currentEraIndex.value) currentEraIndex.value = index;
@@ -310,7 +377,6 @@ onMounted(async () => {
       start: 'top top',
       end: 'bottom bottom',
       onUpdate: (self) => {
-        // 전역 상태 업데이트
         progress.value = Math.round(self.progress * 100);
         const totalEras = eras.value.length - 1;
         const newIndex = Math.round(self.progress * totalEras);
@@ -323,45 +389,48 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  // [수정] 컴포넌트 해제 시 스크롤 위치 초기화 및 리스너 해제 수정
   mm.revert();
-  if (unsubscribeClearStatus) unsubscribeClearStatus();
+  ScrollTrigger.getAll().forEach(t => t.kill());
+  window.scrollTo(0, 0);
+
+  // [수정] 없는 변수 제거, 올바른 구독 변수 해제
   if (unsubscribeNotes) unsubscribeNotes();
+  if (unsubscribeProgress) unsubscribeProgress();
 });
 </script>
 
 <template>
   <div class="home-container">
     <!-- 헤더는 App.vue에서 관리됨 -->
-
+    
     <div class="wrapper" ref="wrapper">
       <div class="horizontal-scroll-container" ref="container">
         <div v-for="(era, index) in eras" :key="'bg-' + era.id" class="era-section" :id="era.bgKeyword" :class="{ active: currentEraIndex === index }">
-          <div class="timeline-graphic">
-            <!-- [유지] active-anim 클래스 (isIntroDone 기반) -->
-            <span :class="{ 'active-anim': isIntroDone }"></span>
-          </div>
+          <div class="timeline-graphic"><span :class="{ 'active-anim': isIntroDone }"></span></div>
           <div class="bg-keyword-text">{{ era.bgKeyword }}</div>
           <div class="timeline-dot" :class="era.type"></div>
         </div>
       </div>
     </div>
 
-    <!-- MainCard에 영상 이벤트(@open-video) 추가 연결 -->
-    <MainCard
-      :current-era="currentEra"
-      :selected-book="selectedBook"
-      :is-books-visible="isBooksVisible"
-      :current-user="currentUser"
+    <!-- MainCard: Props 업데이트 (clearCount 전달) -->
+    <MainCard 
+      :current-era="currentEra" 
+      :selected-book="selectedBook" 
+      :is-books-visible="isBooksVisible" 
+      :current-user="currentUser" 
       :is-cleared="isCurrentEraCleared"
+      :clear-count="currentEraClearCount"
       :book-notes="bookNotes"
       :is-note-loading="isNoteLoading"
-      @toggle-books="toggleBooks"
-      @close-book-detail="closeBookDetail"
-      @start-quiz="openQuiz"
-      @open-video="openVideo"
+      @toggle-books="toggleBooks" 
+      @close-book-detail="closeBookDetail" 
+      @start-quiz="openQuiz" 
+      @open-video="openVideo" 
       @save-note="saveNote"
       @delete-note="deleteNote"
-      @update-note-text="(text) => (noteText = text)"
+      @update-note-text="(text) => noteText = text"
     />
 
     <div class="bible_bg">
@@ -370,212 +439,1009 @@ onUnmounted(() => {
       </figure>
     </div>
 
-    <BookListPanel :is-visible="isBooksVisible" :current-era="currentEra" :selected-book="selectedBook" @close="isBooksVisible = false" @select-book="selectBook" />
+    <BookListPanel 
+      :is-visible="isBooksVisible" 
+      :current-era="currentEra" 
+      :selected-book="selectedBook" 
+      @close="isBooksVisible = false" 
+      @select-book="selectBook" 
+    />
 
     <!-- 퀴즈 모달 -->
     <transition name="fade">
-      <QuizModal v-if="isQuizOpen" :questions="currentEra.quiz || []" :era-title="currentEra.title" @close="closeQuiz" @quiz-completed="handleQuizCompleted" />
+      <QuizModal 
+        v-if="isQuizOpen" 
+        :questions="activeQuizList" 
+        :era-title="currentEra.title" 
+        @close="closeQuiz" 
+        @quiz-completed="handleQuizCompleted" 
+      />
     </transition>
 
-    <!-- [추가] 영상 모달 -->
+    <!-- 영상 모달 -->
     <transition name="fade">
       <VideoModal v-if="isVideoOpen" :video-id="currentVideoId" @close="closeVideo" />
     </transition>
 
-    <!-- SEO용 숨김 H1 -->
-    <h2 class="seo-hidden">성경 한눈에보기 - 창조부터 요한계시록까지</h2>
+    <h1 class="seo-hidden">성경 한눈에보기 - 창조부터 요한계시록까지</h1>
 
     <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
   </div>
 </template>
 
+
 <style lang="scss" scoped>
-/* 제공해주신 스타일 그대로 유지 */
 @use 'sass:color';
 
+/* 색상 변수 정의 */
 .home-container {
-  font-family: 'Noto Sans KR', sans-serif;
-  background-color: $bg-color;
-  color: $text-primary;
-  min-height: 100vh;
-  position: relative;
-  z-index: 0;
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: $bg-color;
+    color: $text-primary;
+    min-height: 100vh;
+    position: relative;
+    z-index: 0;
 }
 
+.serif {
+    font-family: 'Noto Serif KR', serif;
+}
+
+/* Header */
+.header-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 40;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    mix-blend-mode: difference;
+    color: white;
+
+    @include mobile {
+        mix-blend-mode: normal;
+    }
+
+    .logo {
+        font-size: 1.25rem;
+        font-weight: 700;
+        font-family: 'Noto Serif KR', serif;
+        @include mobile {
+            font-size: 16px;
+        }
+
+        a {
+            background-image: url('/img/common/gradient.webp');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+    }
+
+    .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        position: fixed;
+        left: calc(50% + 50px);
+        transform: translateX(-50%);
+        @include mobile {
+            left: calc(50%);
+            bottom: 2rem;
+        }
+
+        .progress-track {
+            height: 0.25rem;
+            width: 8rem;
+            background-color: #374151; /* gray-700 */
+            border-radius: 9999px;
+            overflow: hidden;
+
+            @include mobile {
+                width: 70vw;
+            }
+
+            .progress-fill {
+                height: 100%;
+                // background-color: white;
+                background: url('/img/common/gradient.webp') no-repeat center center/cover;
+                transition: width 0.3s;
+            }
+        }
+
+        .step-indicator {
+            font-size: 0.75rem;
+
+            @include mobile {
+                font-size: 12px;
+            }
+        }
+    }
+
+    .nav-toggle-btn {
+        font-size: 1rem;
+
+        @include mobile {
+            font-size: 12px;
+        }
+    }
+
+    /* 네비게이션 메뉴 스타일 */
+    .main-nav {
+        position: fixed;
+        top: 60px; /* 헤더 높이만큼 띄움 */
+        right: 1.5rem;
+        width: 240px;
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 1rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        z-index: 55;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+
+        @include mobile {
+            top: 45px;
+            background: rgba($color: #1e293b, $alpha: 0.9);
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+
+            li {
+                a {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem;
+                    color: $text-secondary;
+                    text-decoration: none;
+                    border-radius: 0.5rem;
+                    transition: all 0.2s;
+
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.05);
+                        color: white;
+                    }
+
+                    .nav-idx {
+                        font-family: monospace;
+                        font-size: 0.75rem;
+                        color: $text-muted;
+
+                        @include mobile {
+                            font-size: 12px;
+                        }
+                    }
+
+                    .nav-title {
+                        font-weight: 500;
+                        font-size: 0.875rem;
+
+                        @include mobile {
+                            font-size: 14px;
+                        }
+                    }
+                }
+
+                &.active.OT a {
+                    background-color: rgba($ot-color, 0.2);
+                    color: color.adjust($ot-color, $lightness: 20%);
+
+                    .nav-idx {
+                        color: rgba($ot-color, 0.7);
+                    }
+                }
+                &.active.NT a {
+                    background-color: rgba($nt-color, 0.2);
+                    color: color.adjust($nt-color, $lightness: 20%);
+                    .nav-idx {
+                        color: rgba($nt-color, 0.7);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Nav Transition */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all 0.3s ease-out;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+    transform: translateY(-10px);
+    opacity: 0;
+}
+
+/* Scroll Section */
+.wrapper {
+    /* ScrollTrigger 핀 고정을 위한 래퍼 */
+}
+
+/* 반응형 스크롤 컨테이너 설정 */
 .horizontal-scroll-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  height: auto;
-  @include desktop {
-    width: 500%;
-    height: 100vh;
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
+    /* 모바일 (기본): 세로 스크롤 */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+
+    /* 데스크탑: 가로 스크롤 */
+    @media (min-width: 768px) {
+        width: 500%; /* JS에서 length에 따라 계산되지만 기본값 설정 */
+        height: 100vh;
+        flex-direction: row;
+        flex-wrap: nowrap;
+    }
 }
 
 .era-section {
-  width: 100%;
-  height: 100vh;
-  position: relative;
-  flex-shrink: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  @include desktop {
-    width: 100vw;
+    /* 모바일: 화면 전체 높이로 세로 배치 */
+    width: 100%;
     height: 100vh;
-    border-bottom: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-  }
+    position: relative;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* 모바일은 아래쪽 경계 */
+    //overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-  .timeline-graphic {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 2px;
-    height: 100%;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.2);
-    @include desktop {
-      top: 50%;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      transform: translateY(-50%);
+    /* 데스크탑 */
+    @media (min-width: 768px) {
+        width: 100vw; /* 가로 스크롤 시 한 화면 너비 */
+        height: 100vh;
+        border-bottom: none;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    span {
-      display: block;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      @include mobile {
-        display: none;
-      }
-
-      &.active-anim {
-        i {
-          animation: move infinite 5s linear;
-        }
-      }
-      i {
-        display: block;
-        width: 70px;
-        aspect-ratio: 150/20;
-        transform: translateY(-50%);
-        border-radius: 50%;
-        background-color: $text-primary;
-        filter: blur(10px);
+    .timeline-graphic {
         position: absolute;
-        //animation: move infinite 5s linear;
-        visibility: hidden;
-        opacity: 0;
-        @keyframes move {
-          0% {
+        /* 모바일: 세로 선 */
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 100%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.2);
+
+        /* 데스크탑: 가로 선 */
+        @media (min-width: 768px) {
+            top: 50%;
             left: 0;
-          }
-          100% {
-            left: 100%;
-          }
+            width: 100%;
+            height: 2px;
+            transform: translateY(-50%);
         }
-      }
-    }
-  }
 
-  &.active .timeline-graphic span i {
-    visibility: visible;
-    opacity: 1;
-  }
+        span {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: relative;
 
-  .bg-keyword-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 15vw;
-    font-weight: 900;
-    opacity: 0.05;
-    font-family: 'Noto Serif KR', serif;
-    white-space: nowrap;
-    pointer-events: none;
-    letter-spacing: 0.5rem;
-    text-transform: uppercase;
-    color: $text-primary;
-    transition: all 0.8s ease-out;
-    @include desktop {
-      font-size: 12vw;
-    }
-  }
+            @include mobile {
+                display: none;
+            }
+            &::before {
+                content: '';
+                display: block;
+                width: 70px;
+                aspect-ratio: 150/20;
+                transform: translateY(-50%);
+                border-radius: 50%;
+                background-color: $text-primary;
+                filter: blur(10px);
+                position: absolute;
+                animation: move infinite 5s linear;
+                visibility: hidden;
+                opacity: 0;
 
-  .timeline-dot {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-    z-index: 1;
-    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    &.OT {
-      background-color: $ot-color;
-      box-shadow: 0 0 15px $ot-color;
+                @keyframes move {
+                    0% {
+                        left: 0;
+                    }
+                    100% {
+                        left: 100%;
+                    }
+                }
+            }
+        }
     }
-    &.NT {
-      background-color: $nt-color;
-      box-shadow: 0 0 15px $nt-color;
+
+    &.active {
+        .timeline-graphic {
+            span {
+                &::before {
+                    visibility: visible;
+                    opacity: 1;
+                }
+            }
+        }
     }
-  }
+
+    .bg-keyword-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 10vw; /* 모바일에서 더 크게 */
+        font-weight: 900;
+        opacity: 0.1;
+        font-family: 'Noto Serif KR', serif;
+        white-space: nowrap;
+        pointer-events: none;
+        letter-spacing: 0.5rem;
+        text-transform: uppercase;
+
+        /* 모바일에서는 텍스트가 세로로 겹치지 않게 회전시킬 수도 있음 */
+        @include mobile {
+            font-size: 12vw;
+        }
+    }
+
+    .timeline-dot {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        z-index: 1;
+
+        &.OT {
+            background-color: $ot-color;
+        }
+        &.NT {
+            background-color: $nt-color;
+        }
+    }
 }
 
-.bible_bg {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  left: 50%;
-  top: 50%;
-  z-index: -1;
-  background-color: $bg-color;
-  transform: translate(-50%, -50%);
-  figure {
-    width: 100%;
-    height: 100%;
-    position: absolute;
+/* Main Content Card */
+.fixed-content-layer {
+    position: fixed;
     top: 0;
     left: 0;
-    opacity: 0.25;
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: blur(5px);
-      position: absolute;
-      top: 0;
-      left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    display: flex;
+    align-items: center; /* 데스크탑: 중앙 정렬 */
+    justify-content: center;
+}
+
+.main-card {
+    pointer-events: auto;
+    width: 90%;
+    max-width: 650px;
+    // background: rgba(15, 23, 42, 1); /* 모바일 가독성을 위해 투명도 조절 */
+    backdrop-filter: blur(16px);
+    border: 1px solid $border-color;
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+    /* 모바일 스타일 조정 */
+    @media (max-width: 767px) {
+        width: 95%;
+        padding: 2rem;
+        gap: 1rem;
+        max-height: 80vh; /* 너무 길어지지 않게 제한 */
+        //overflow-y: auto; /* 내용 많으면 내부 스크롤 */
+        margin-bottom: 5vh;
     }
-  }
+
+    /* 네온 효과 요소 추가 */
+    &::after {
+        content: '';
+        position: absolute;
+        z-index: -2;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: conic-gradient(transparent, rgba($ot-color, 0.5), transparent 30%);
+        animation: rotate 4s linear infinite;
+        pointer-events: none;
+        transition: all 0.25s;
+    }
+
+    /* 내부 컨텐츠가 가려지지 않도록 배경을 하나 더 덧댐 */
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 1px; /* 1px 안쪽으로 */
+        // background: rgba(15, 23, 42, 1); /* 카드 배경색 */
+        background: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, #212121 100%);
+        border-radius: inherit;
+        z-index: -1;
+    }
+
+    &.NT {
+        &::after {
+            background: conic-gradient(transparent, rgba($nt-color, 0.5), transparent 30%);
+        }
+    }
+
+    @keyframes rotate {
+        100% {
+            transform: rotate(1turn);
+        }
+    }
+
+    .detail-close-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: color 0.3s;
+        width: 2rem;
+        height: 2rem;
+        z-index: 20;
+
+        &:hover {
+            color: white;
+        }
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+
+        @include mobile {
+            align-items: center;
+        }
+
+        .main-bible-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+
+            @media (max-width: 767px) {
+                font-size: 12px;
+                padding: 0.5rem 1rem;
+            }
+
+            &.OT {
+                background-color: rgba($ot-color, 0.2);
+                color: color.adjust($ot-color, $lightness: 20%);
+                border-color: rgba($ot-color, 0.3);
+            }
+            &.NT {
+                background-color: rgba($nt-color, 0.2);
+                color: color.adjust($nt-color, $lightness: 20%);
+                border-color: rgba($nt-color, 0.3);
+            }
+        }
+
+        .era-type {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+
+            @include mobile {
+                font-size: 10px;
+            }
+
+            &.OT {
+                color: color.adjust($ot-color, $lightness: 10%);
+            }
+            &.NT {
+                color: color.adjust($nt-color, $lightness: 10%);
+            }
+        }
+    }
+
+    .title-area {
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-family: 'Noto Serif KR', serif;
+            color: white;
+            margin: 0 0 0.5rem 0;
+
+            @include mobile {
+                font-size: 18px;
+                margin-bottom: 10px;
+            }
+        }
+        p {
+            font-size: 1.125rem;
+            color: color.adjust($accent-color, $lightness: 25%);
+            font-weight: 500;
+            margin: 0;
+
+            @include mobile {
+                font-size: 12px;
+            }
+        }
+    }
+
+    .description {
+        color: #cbd5e1;
+        line-height: 1.625;
+        font-size: 1rem;
+        border-left: 2px solid rgba(255, 255, 255, 0.1);
+        padding-left: 1rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+
+        @include mobile {
+            font-size: 12px;
+            line-height: 1.5;
+            max-height: 100px; /* 모바일에서 설명 너무 길면 자르거나 스크롤 */
+            overflow-y: auto;
+        }
+
+        &.book-desc {
+            max-height: 200px;
+            @include mobile {
+                max-height: 150px;
+            }
+        }
+    }
+
+    .key-figures {
+        h4 {
+            font-size: 0.75rem;
+            color: $text-muted;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 0 0 0.5rem 0;
+
+            @include mobile {
+                font-size: 12px;
+            }
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+
+            .tag {
+                padding: 0.25rem 0.75rem;
+                background-color: #1e293b;
+                border-radius: 0.5rem;
+                font-size: 0.75rem;
+                color: #cbd5e1;
+                border: 1px solid #334155;
+                @include mobile {
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+
+    .action-area {
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: center;
+
+        .books-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0.75rem 2rem;
+            border-radius: 0.75rem;
+            background: linear-gradient(to right, $ot-color, #047a8f);
+            color: $text-primary;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 10px 15px -3px rgba($ot-color, 0.25);
+            border: none;
+            cursor: pointer;
+
+            &:hover {
+                background: linear-gradient(to right, color.adjust($ot-color, $lightness: - 5%), color.adjust(#047a8f, $lightness: - 5%));
+            }
+
+            &.NT {
+                background: linear-gradient(to right, $nt-color, #9f2a3d);
+                box-shadow: 0 10px 15px -3px rgba($nt-color, 0.25);
+                &:hover {
+                    background: linear-gradient(to right, color.adjust($nt-color, $lightness: - 5%), color.adjust(#9f2a3d, $lightness: - 5%));
+                }
+            }
+
+            @include mobile {
+                width: 100%;
+                font-size: 12px;
+                padding: 1.5rem 0;
+            }
+
+            .arrow-icon {
+                width: 1rem;
+                height: auto;
+                aspect-ratio: 1/1;
+                transition: transform 0.3s;
+
+                @include mobile {
+                    width: 2rem;
+                }
+
+                &.rotate-180 {
+                    transform: rotate(180deg);
+                }
+            }
+        }
+    }
+}
+
+/* Bottom Sheet */
+.bottom-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60vh; /* 모바일에서 좀 더 높게 */
+    background-color: $bg-color;
+    border-top: 1px solid $border-color;
+    z-index: 50;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(100%);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &.show {
+        transform: translateY(0);
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .panel-inner {
+        max-width: 64rem;
+        margin: 0 auto;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+
+        @media (max-width: 767px) {
+            padding: 1.5rem;
+        }
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 1rem;
+
+        @include mobile {
+            align-items: flex-start;
+        }
+
+        .header-text {
+            @include mobile {
+                max-width: calc(100% - 3rem);
+            }
+            h3 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                font-family: 'Noto Serif KR', serif;
+                color: white;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+
+                @include mobile {
+                    font-size: 18px;
+                }
+            }
+            p {
+                color: $text-secondary;
+                font-size: 0.875rem;
+                margin: 0.25rem 0 0 0;
+
+                @include mobile {
+                    margin-top: 10px;
+                    font-size: 12px;
+                    line-height: 1.25;
+                }
+            }
+        }
+
+        .close-btn {
+            background-color: #1e293b;
+            padding: 0.5rem;
+            border-radius: 9999px;
+            color: $text-secondary;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            @include mobile {
+                padding: 0;
+            }
+
+            &:hover {
+                background-color: #334155;
+                color: white;
+            }
+
+            .close-icon {
+                width: 1.5rem;
+                height: auto;
+                aspect-ratio: 1/1;
+
+                @include mobile {
+                    width: 3rem;
+                }
+            }
+        }
+    }
+
+    .books-grid-wrapper {
+        max-height: 85%;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+
+        &::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent; /* 스크롤바 뒷 배경 색상 */
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: rgba($color: $ot-color, $alpha: 1);
+            border-radius: 12px 12px 12px 12px;
+        }
+    }
+
+    .books-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+
+        @media (min-width: 768px) {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        @media (min-width: 1024px) {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .book-card {
+            background-color: rgba(30, 41, 59, 0.5);
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+
+            /* 선택된 카드 스타일 추가 */
+            &.selected {
+                border-color: $accent-color;
+                background-color: #1e293b;
+                .book-bg-icon {
+                    opacity: 0.1;
+                }
+                h4 {
+                    color: white;
+                }
+                .book-category span {
+                    background-color: rgba($accent-color, 0.3);
+                    color: color.adjust($accent-color, $lightness: 20%);
+                }
+            }
+
+            &:hover {
+                border-color: $accent-color;
+                background-color: #1e293b;
+
+                .book-bg-icon {
+                    opacity: 0.1;
+                }
+
+                h4 {
+                    color: white;
+                }
+
+                .book-category span {
+                    background-color: rgba($accent-color, 0.3);
+                    color: color.adjust($accent-color, $lightness: 20%);
+                }
+            }
+
+            .book-bg-icon {
+                position: absolute;
+                right: -1rem;
+                bottom: -1rem;
+                font-size: 3.75rem;
+                opacity: 0.05;
+                filter: grayscale(100%);
+                transition: opacity 0.3s;
+
+                @include mobile {
+                    font-size: 52px;
+                }
+            }
+
+            .book-category {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 0.5rem;
+
+                span {
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 0.25rem;
+                    background-color: #334155;
+                    color: #cbd5e1;
+                    transition: all 0.2s;
+
+                    @include mobile {
+                        font-size: 12px;
+                    }
+                }
+            }
+
+            h4 {
+                font-size: 1.125rem;
+                font-weight: 700;
+                color: #e2e8f0;
+                margin: 0 0 0.25rem 0;
+                transition: color 0.2s;
+
+                @include mobile {
+                    font-size: 16px;
+                    margin: 0 0 8px 0;
+                }
+            }
+
+            p {
+                font-size: 0.875rem;
+                color: $text-secondary;
+                margin: 0;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                line-height: 1.25;
+                @include mobile {
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 10rem;
+        color: $text-muted;
+        background-color: rgba(30, 41, 59, 0.3);
+        border-radius: 0.75rem;
+        border: 1px dashed #334155;
+
+        @include mobile {
+            font-size: 12px;
+            line-height: 1.25;
+        }
+
+        .empty-icon {
+            font-size: 1.875rem;
+            margin-bottom: 0.5rem;
+
+            @include mobile {
+                font-size: 12px;
+            }
+        }
+
+        p {
+            margin: 0;
+            &.sub-text {
+                font-size: 0.75rem;
+                margin-top: 0.25rem;
+                @include mobile {
+                    font-size: 12px;
+                }
+            }
+        }
+    }
 }
 
 .overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 40;
-  backdrop-filter: blur(4px);
-  transition: opacity 0.3s;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 40;
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s;
 }
 
+/* Transitions */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.5s ease;
+    transition:
+        opacity 0.5s ease,
+        transform 0.5s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
-  opacity: 0;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.bible_bg {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    left: 50%;
+    top: 50%;
+    z-index: -1;
+    background-color: $bg-color;
+    transform: translate(-50%, -50%);
+
+    figure {
+        width: 100%;
+        height: 100%;
+        position: absolute; /* 절대 위치로 겹쳐지게 */
+        top: 0;
+        left: 0;
+        opacity: 0.25;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(5px);
+        }
+    }
 }
 </style>
