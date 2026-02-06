@@ -10,17 +10,7 @@ import { usePanoramaState } from '@/composables/usePanoramaState';
 import { auth, db } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 // [수정] DB 저장에 필요한 increment, arrayUnion 추가 import
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  setDoc, 
-  doc, 
-  serverTimestamp, 
-  increment, 
-  arrayUnion 
-} from 'firebase/firestore';
+import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, increment, arrayUnion } from 'firebase/firestore';
 
 // Components Imports
 import MainCard from '@/components/MainCard.vue';
@@ -39,7 +29,7 @@ const wrapper = ref(null);
 const container = ref(null);
 const isBooksVisible = ref(false);
 
-const currentUser = ref(null); 
+const currentUser = ref(null);
 const selectedBook = ref(null);
 const displayBgUrl = ref('/img/genesis_01.webp');
 const bgImage = ref(null);
@@ -58,114 +48,117 @@ const currentEra = computed(() => eras.value[currentEraIndex.value]);
 
 // 현재 시대 클리어 횟수 (MainCard 전달용)
 const currentEraClearCount = computed(() => {
-  const progress = eraProgressMap.value.get(currentEra.value.id);
-  return progress ? progress.clearCount : 0;
+    const progress = eraProgressMap.value.get(currentEra.value.id);
+    return progress ? progress.clearCount : 0;
 });
 
 // 최소 1회 이상 클리어 여부
 const isCurrentEraCleared = computed(() => currentEraClearCount.value > 0);
 
-
 // --- Actions ---
 const toggleBooks = () => (isBooksVisible.value = !isBooksVisible.value);
 
 const selectBook = (book) => {
-  selectedBook.value = book;
-  isBooksVisible.value = false;
-  subscribeToNotes(book.name);
+    selectedBook.value = book;
+    isBooksVisible.value = false;
+    subscribeToNotes(book.name);
 };
 
 const closeBookDetail = () => {
-  selectedBook.value = null;
-  if (unsubscribeNotes) unsubscribeNotes();
+    selectedBook.value = null;
+    if (unsubscribeNotes) unsubscribeNotes();
 };
 
 // [수정] 퀴즈 열기 (랜덤 출제 로직 적용)
 const openQuiz = () => {
-  if (!currentEra.value.quiz || currentEra.value.quiz.length === 0) {
-    alert("준비된 문제가 없습니다.");
-    return;
-  }
+    if (!currentEra.value.quiz || currentEra.value.quiz.length === 0) {
+        alert('준비된 문제가 없습니다.');
+        return;
+    }
 
-  // 1. 현재 시대의 모든 문제
-  const allQuizzes = currentEra.value.quiz;
-  
-  // 2. 내가 이미 푼 문제 ID 목록 가져오기
-  const myProgress = eraProgressMap.value.get(currentEra.value.id);
-  const solvedIds = myProgress ? myProgress.solvedIds : [];
+    // 1. 현재 시대의 모든 문제
+    const allQuizzes = currentEra.value.quiz;
 
-  // 3. 안 푼 문제 필터링
-  const unsolvedQuizzes = allQuizzes.filter(q => !solvedIds.includes(q.id));
+    // 2. 내가 이미 푼 문제 ID 목록 가져오기
+    const myProgress = eraProgressMap.value.get(currentEra.value.id);
+    const solvedIds = myProgress ? myProgress.solvedIds : [];
 
-  let targetPool = [];
-  // 4. 문제가 부족하면(다 풀었거나 5개 미만 남음) 전체에서, 충분하면 안 푼 문제에서 출제
-  if (unsolvedQuizzes.length < 5) {
-    targetPool = [...allQuizzes]; // 전체 문제 풀 사용 (복습)
-  } else {
-    targetPool = [...unsolvedQuizzes]; // 안 푼 문제 풀 사용
-  }
+    // 3. 안 푼 문제 필터링
+    const unsolvedQuizzes = allQuizzes.filter((q) => !solvedIds.includes(q.id));
 
-  // 5. 랜덤 5문제 추출
-  const shuffled = targetPool.sort(() => 0.5 - Math.random());
-  activeQuizList.value = shuffled.slice(0, 5);
+    let targetPool = [];
+    // 4. 문제가 부족하면(다 풀었거나 5개 미만 남음) 전체에서, 충분하면 안 푼 문제에서 출제
+    if (unsolvedQuizzes.length < 5) {
+        targetPool = [...allQuizzes]; // 전체 문제 풀 사용 (복습)
+    } else {
+        targetPool = [...unsolvedQuizzes]; // 안 푼 문제 풀 사용
+    }
 
-  isQuizOpen.value = true;
+    // 5. 랜덤 5문제 추출
+    const shuffled = targetPool.sort(() => 0.5 - Math.random());
+    activeQuizList.value = shuffled.slice(0, 5);
+
+    isQuizOpen.value = true;
 };
 
-const closeQuiz = () => { isQuizOpen.value = false; };
+const closeQuiz = () => {
+    isQuizOpen.value = false;
+};
 
 // [수정] 퀴즈 만점(성공) 시 DB 저장 로직 (user_progress 컬렉션 사용)
 const handleQuizCompleted = async (isSuccess) => {
-  if (isSuccess && currentUser.value) {
-    const eraId = currentEra.value.id;
-    // 이번에 푼 문제들의 ID 추출
-    const solvedIdsInThisSession = activeQuizList.value.map(q => q.id);
+    if (isSuccess && currentUser.value) {
+        const eraId = currentEra.value.id;
+        // 이번에 푼 문제들의 ID 추출
+        const solvedIdsInThisSession = activeQuizList.value.map((q) => q.id);
 
-    // [수정] DB 업데이트 전 현재 횟수를 미리 저장 (리스너에 의한 중복 카운트 방지)
-    const previousCount = eraProgressMap.value.get(eraId)?.clearCount || 0;
+        // [수정] DB 업데이트 전 현재 횟수를 미리 저장 (리스너에 의한 중복 카운트 방지)
+        const previousCount = eraProgressMap.value.get(eraId)?.clearCount || 0;
 
-    try {
-      // 문서 ID: 유저ID_시대ID
-      const docRef = doc(db, 'user_progress', `${currentUser.value.uid}_${eraId}`);
-      
-      // merge: true 옵션으로 문서가 없으면 생성, 있으면 업데이트
-      await setDoc(docRef, {
-        userId: currentUser.value.uid,
-        eraId: eraId,
-        eraTitle: currentEra.value.title,
-        clearCount: increment(1), // 클리어 횟수 1 증가
-        solvedQuizIds: arrayUnion(...solvedIdsInThisSession), // 푼 문제 ID 추가 (중복 자동 제거)
-        lastClearedAt: serverTimestamp()
-      }, { merge: true });
-      
-      closeQuiz();
-      
-      // [수정] 미리 저장해둔 횟수에 1을 더해 표시
-      alert(`축하합니다! 퀴즈를 모두 맞추셨습니다. 🏅 (누적 ${previousCount + 1}회)`);
+        try {
+            // 문서 ID: 유저ID_시대ID
+            const docRef = doc(db, 'user_progress', `${currentUser.value.uid}_${eraId}`);
 
-    } catch (error) {
-      console.error("Quiz Save Error:", error);
-      alert(`결과 저장 중 오류가 발생했습니다.\n(${error.message})`);
+            // merge: true 옵션으로 문서가 없으면 생성, 있으면 업데이트
+            await setDoc(
+                docRef,
+                {
+                    userId: currentUser.value.uid,
+                    eraId: eraId,
+                    eraTitle: currentEra.value.title,
+                    clearCount: increment(1), // 클리어 횟수 1 증가
+                    solvedQuizIds: arrayUnion(...solvedIdsInThisSession), // 푼 문제 ID 추가 (중복 자동 제거)
+                    lastClearedAt: serverTimestamp(),
+                },
+                { merge: true },
+            );
+
+            closeQuiz();
+
+            // [수정] 미리 저장해둔 횟수에 1을 더해 표시
+            alert(`축하합니다! 퀴즈를 모두 맞추셨습니다. 🏅 (누적 ${previousCount + 1}회)`);
+        } catch (error) {
+            console.error('Quiz Save Error:', error);
+            alert(`결과 저장 중 오류가 발생했습니다.\n(${error.message})`);
+        }
     }
-  }
 };
 
 // [수정] 영상 모달 열기
 const openVideo = (type) => {
-  const videoId = currentEra.value.videos?.[type];
-  if (videoId) {
-    currentVideoId.value = videoId;
-    isVideoOpen.value = true;
-  } else {
-    alert("준비 중인 영상입니다. 😅");
-  }
+    const videoId = currentEra.value.videos?.[type];
+    if (videoId) {
+        currentVideoId.value = videoId;
+        isVideoOpen.value = true;
+    } else {
+        alert('준비 중인 영상입니다. 😅');
+    }
 };
 
 const closeVideo = () => {
-  isVideoOpen.value = false;
-  currentVideoId.value = '';
+    isVideoOpen.value = false;
+    currentVideoId.value = '';
 };
-
 
 // --- Firebase Listeners ---
 let unsubscribeNotes = null;
@@ -175,101 +168,100 @@ const bookNotes = ref([]);
 const isNoteLoading = ref(false);
 
 const subscribeToNotes = (bookName) => {
-  if (unsubscribeNotes) unsubscribeNotes();
-  bookNotes.value = [];
-  if (!currentUser.value || !bookName) return;
+    if (unsubscribeNotes) unsubscribeNotes();
+    bookNotes.value = [];
+    if (!currentUser.value || !bookName) return;
 
-  isNoteLoading.value = true;
-  const q = query(
-    collection(db, 'meditations'),
-    where('userId', '==', currentUser.value.uid),
-    where('bookName', '==', bookName),
-    orderBy('createdAt', 'desc')
-  );
+    isNoteLoading.value = true;
+    const q = query(collection(db, 'meditations'), where('userId', '==', currentUser.value.uid), where('bookName', '==', bookName), orderBy('createdAt', 'desc'));
 
-  unsubscribeNotes = onSnapshot(q, (snapshot) => {
-    bookNotes.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    isNoteLoading.value = false;
-  }, (error) => {
-    console.error("Data Fetch Error:", error);
-    isNoteLoading.value = false;
-  });
+    unsubscribeNotes = onSnapshot(
+        q,
+        (snapshot) => {
+            bookNotes.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            isNoteLoading.value = false;
+        },
+        (error) => {
+            console.error('Data Fetch Error:', error);
+            isNoteLoading.value = false;
+        },
+    );
 };
 
 const saveNote = async () => {
-  if (!noteText.value.trim() || !currentUser.value || !selectedBook.value) return;
-  try {
-    await addDoc(collection(db, 'meditations'), {
-      userId: currentUser.value.uid,
-      userName: currentUser.value.displayName,
-      bookName: selectedBook.value.name,
-      content: noteText.value,
-      createdAt: serverTimestamp(),
-    });
-    noteText.value = '';
-  } catch (error) {
-    console.error("Save Error:", error);
-    alert("저장 중 오류가 발생했습니다.");
-  }
+    if (!noteText.value.trim() || !currentUser.value || !selectedBook.value) return;
+    try {
+        await addDoc(collection(db, 'meditations'), {
+            userId: currentUser.value.uid,
+            userName: currentUser.value.displayName,
+            bookName: selectedBook.value.name,
+            content: noteText.value,
+            createdAt: serverTimestamp(),
+        });
+        noteText.value = '';
+    } catch (error) {
+        console.error('Save Error:', error);
+        alert('저장 중 오류가 발생했습니다.');
+    }
 };
 
 const deleteNote = async (noteId) => {
-  if (!confirm("정말 삭제하시겠습니까?")) return;
-  try {
-    await deleteDoc(doc(db, 'meditations', noteId));
-  } catch (error) {
-    console.error("Delete Error:", error);
-  }
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+        await deleteDoc(doc(db, 'meditations', noteId));
+    } catch (error) {
+        console.error('Delete Error:', error);
+    }
 };
 
 // [수정] 유저 진행 상황(Progress) 구독 - user_progress 컬렉션
 watch(currentUser, (user) => {
-  if (unsubscribeProgress) unsubscribeProgress();
-  eraProgressMap.value.clear();
-  clearedEras.value.clear();
+    if (unsubscribeProgress) unsubscribeProgress();
+    eraProgressMap.value.clear();
+    clearedEras.value.clear();
 
-  if (user) {
-    const q = query(collection(db, 'user_progress'), where('userId', '==', user.uid));
-    
-    unsubscribeProgress = onSnapshot(q, (snapshot) => {
-      const newMap = new Map();
-      const clears = new Set();
+    if (user) {
+        const q = query(collection(db, 'user_progress'), where('userId', '==', user.uid));
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        newMap.set(data.eraId, {
-          clearCount: data.clearCount || 0,
-          solvedIds: data.solvedQuizIds || []
+        unsubscribeProgress = onSnapshot(q, (snapshot) => {
+            const newMap = new Map();
+            const clears = new Set();
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                newMap.set(data.eraId, {
+                    clearCount: data.clearCount || 0,
+                    solvedIds: data.solvedQuizIds || [],
+                });
+
+                // 1회 이상 클리어 시 클리어 목록에 추가
+                if ((data.clearCount || 0) > 0) {
+                    clears.add(data.eraId);
+                }
+            });
+
+            eraProgressMap.value = newMap;
+            clearedEras.value = clears; // MainCard isCurrentEraCleared 계산용
         });
-        
-        // 1회 이상 클리어 시 클리어 목록에 추가
-        if ((data.clearCount || 0) > 0) {
-          clears.add(data.eraId);
-        }
-      });
-      
-      eraProgressMap.value = newMap;
-      clearedEras.value = clears; // MainCard isCurrentEraCleared 계산용
-    });
-  }
+    }
 });
 
 // --- Scroll Logic ---
 const scrollToEra = (index) => {
-  isNavOpen.value = false;
-  const isMobile = window.innerWidth < 768;
-  
-  if (isMobile) {
-    const sections = document.querySelectorAll('.era-section');
-    if (sections[index]) {
-      sections[index].scrollIntoView({ behavior: 'smooth' });
+    isNavOpen.value = false;
+    const isMobile = window.innerWidth < 768;
+
+    if (isMobile) {
+        const sections = document.querySelectorAll('.era-section');
+        if (sections[index]) {
+            sections[index].scrollIntoView({ behavior: 'smooth' });
+        }
+    } else {
+        const totalDistance = eras.value.length * 1000;
+        const progressRatio = index / (eras.value.length - 1);
+        const scrollPos = wrapper.value.offsetTop + progressRatio * totalDistance;
+        window.scrollTo({ top: scrollPos, behavior: 'smooth' });
     }
-  } else {
-    const totalDistance = eras.value.length * 1000;
-    const progressRatio = index / (eras.value.length - 1);
-    const scrollPos = wrapper.value.offsetTop + progressRatio * totalDistance;
-    window.scrollTo({ top: scrollPos, behavior: 'smooth' });
-  }
 };
 
 // 헤더에서 호출할 수 있도록 함수 등록
@@ -277,195 +269,167 @@ registerScrollTrigger(scrollToEra);
 
 // --- Watchers ---
 watch(currentEraIndex, () => {
-  isBooksVisible.value = false;
-  selectedBook.value = null;
-  if (unsubscribeNotes) unsubscribeNotes();
+    isBooksVisible.value = false;
+    selectedBook.value = null;
+    if (unsubscribeNotes) unsubscribeNotes();
 });
 
 const activeBgUrl = computed(() => {
-  if (selectedBook.value && selectedBook.value.bgURL) {
-    return selectedBook.value.bgURL;
-  }
-  return eras.value[currentEraIndex.value].bgURL || '/img/genesis_01.webp';
+    if (selectedBook.value && selectedBook.value.bgURL) {
+        return selectedBook.value.bgURL;
+    }
+    return eras.value[currentEraIndex.value].bgURL || '/img/genesis_01.webp';
 });
 
 // 배경 이미지 교체 로직 (GSAP 애니메이션)
 watch(activeBgUrl, (newUrl) => {
-  if (displayBgUrl.value === newUrl) return;
-  const imgLoader = new Image();
-  imgLoader.src = newUrl;
+    if (displayBgUrl.value === newUrl) return;
+    const imgLoader = new Image();
+    imgLoader.src = newUrl;
 
-  if (bgImage.value) {
-    gsap.killTweensOf(bgImage.value);
-    const tl = gsap.timeline();
-    tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' })
-      .call(() => {
-        if (imgLoader.complete) {
-          swapAndFadeIn();
-        } else {
-          imgLoader.onload = swapAndFadeIn;
-        }
-      });
-  } else {
-    imgLoader.onload = swapAndFadeIn;
-  }
+    if (bgImage.value) {
+        gsap.killTweensOf(bgImage.value);
+        const tl = gsap.timeline();
+        tl.to(bgImage.value, { opacity: 0, duration: 0.3, ease: 'power1.out' }).call(() => {
+            if (imgLoader.complete) {
+                swapAndFadeIn();
+            } else {
+                imgLoader.onload = swapAndFadeIn;
+            }
+        });
+    } else {
+        imgLoader.onload = swapAndFadeIn;
+    }
 
-  function swapAndFadeIn() {
-    displayBgUrl.value = newUrl;
-    setTimeout(() => {
-      if (bgImage.value) {
-        gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5, ease: 'power1.in' });
-      }
-    }, 50);
-  }
+    function swapAndFadeIn() {
+        displayBgUrl.value = newUrl;
+        setTimeout(() => {
+            if (bgImage.value) {
+                gsap.to(bgImage.value, { opacity: 0.25, duration: 0.5, ease: 'power1.in' });
+            }
+        }, 50);
+    }
 });
 
 // --- Lifecycle ---
 const preloadImages = () => {
-  eras.value.forEach((era) => {
-    if (era.bgURL) {
-      const img = new Image();
-      img.src = era.bgURL;
-    }
-  });
+    eras.value.forEach((era) => {
+        if (era.bgURL) {
+            const img = new Image();
+            img.src = era.bgURL;
+        }
+    });
 };
 
 let mm = gsap.matchMedia();
 
 onMounted(async () => {
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  window.scrollTo(0, 0);
-
-  // Panorama 컴포넌트에서도 유저 정보를 알아야 함 (DB 저장용)
-  onAuthStateChanged(auth, (user) => { currentUser.value = user; });
-
-  preloadImages();
-  displayBgUrl.value = eras.value[0].bgURL || '/img/genesis_01.webp';
-
-  await nextTick();
-  const sections = gsap.utils.toArray('.era-section');
-
-  setTimeout(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
-    currentEraIndex.value = 0;
-    ScrollTrigger.refresh();
-  }, 100);
 
-  // Desktop
-  mm.add('(min-width: 768px)', () => {
-    gsap.to(sections, {
-      xPercent: -100 * (sections.length - 1),
-      ease: 'none',
-      scrollTrigger: {
-        trigger: wrapper.value,
-        pin: true,
-        scrub: 0.1,
-        end: `+=${sections.length * 1000}`,
-        onUpdate: (self) => {
-          progress.value = Math.round(self.progress * 100);
-          const index = Math.round(self.progress * (sections.length - 1));
-          if (index !== currentEraIndex.value) currentEraIndex.value = index;
-        },
-      },
+    // Panorama 컴포넌트에서도 유저 정보를 알아야 함 (DB 저장용)
+    onAuthStateChanged(auth, (user) => {
+        currentUser.value = user;
     });
-  });
 
-  // Mobile
-  mm.add('(max-width: 767px)', () => {
-    ScrollTrigger.create({
-      trigger: wrapper.value,
-      start: 'top top',
-      end: 'bottom bottom',
-      onUpdate: (self) => {
-        progress.value = Math.round(self.progress * 100);
-        const totalEras = eras.value.length - 1;
-        const newIndex = Math.round(self.progress * totalEras);
-        if (newIndex >= 0 && newIndex <= totalEras && newIndex !== currentEraIndex.value) {
-          currentEraIndex.value = newIndex;
-        }
-      },
+    preloadImages();
+    displayBgUrl.value = eras.value[0].bgURL || '/img/genesis_01.webp';
+
+    await nextTick();
+    const sections = gsap.utils.toArray('.era-section');
+
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        currentEraIndex.value = 0;
+        ScrollTrigger.refresh();
+    }, 100);
+
+    // Desktop
+    mm.add('(min-width: 768px)', () => {
+        gsap.to(sections, {
+            xPercent: -100 * (sections.length - 1),
+            ease: 'none',
+            scrollTrigger: {
+                trigger: wrapper.value,
+                pin: true,
+                scrub: 0.1,
+                end: `+=${sections.length * 1000}`,
+                onUpdate: (self) => {
+                    progress.value = Math.round(self.progress * 100);
+                    const index = Math.round(self.progress * (sections.length - 1));
+                    if (index !== currentEraIndex.value) currentEraIndex.value = index;
+                },
+            },
+        });
     });
-  });
+
+    // Mobile
+    mm.add('(max-width: 767px)', () => {
+        ScrollTrigger.create({
+            trigger: wrapper.value,
+            start: 'top top',
+            end: 'bottom bottom',
+            onUpdate: (self) => {
+                progress.value = Math.round(self.progress * 100);
+                const totalEras = eras.value.length - 1;
+                const newIndex = Math.round(self.progress * totalEras);
+                if (newIndex >= 0 && newIndex <= totalEras && newIndex !== currentEraIndex.value) {
+                    currentEraIndex.value = newIndex;
+                }
+            },
+        });
+    });
 });
 
 onUnmounted(() => {
-  // [수정] 컴포넌트 해제 시 스크롤 위치 초기화 및 리스너 해제 수정
-  mm.revert();
-  ScrollTrigger.getAll().forEach(t => t.kill());
-  window.scrollTo(0, 0);
+    // [수정] 컴포넌트 해제 시 스크롤 위치 초기화 및 리스너 해제 수정
+    mm.revert();
+    ScrollTrigger.getAll().forEach((t) => t.kill());
+    window.scrollTo(0, 0);
 
-  // [수정] 없는 변수 제거, 올바른 구독 변수 해제
-  if (unsubscribeNotes) unsubscribeNotes();
-  if (unsubscribeProgress) unsubscribeProgress();
+    // [수정] 없는 변수 제거, 올바른 구독 변수 해제
+    if (unsubscribeNotes) unsubscribeNotes();
+    if (unsubscribeProgress) unsubscribeProgress();
 });
 </script>
 
 <template>
-  <div class="home-container">
-    <!-- 헤더는 App.vue에서 관리됨 -->
-    
-    <div class="wrapper" ref="wrapper">
-      <div class="horizontal-scroll-container" ref="container">
-        <div v-for="(era, index) in eras" :key="'bg-' + era.id" class="era-section" :id="era.bgKeyword" :class="{ active: currentEraIndex === index }">
-          <div class="timeline-graphic"><span :class="{ 'active-anim': isIntroDone }"></span></div>
-          <div class="bg-keyword-text">{{ era.bgKeyword }}</div>
-          <div class="timeline-dot" :class="era.type"></div>
+    <div class="home-container">
+        <!-- 헤더는 App.vue에서 관리됨 -->
+
+        <div class="wrapper" ref="wrapper">
+            <div class="horizontal-scroll-container" ref="container">
+                <div v-for="(era, index) in eras" :key="'bg-' + era.id" class="era-section" :id="era.bgKeyword" :class="{ active: currentEraIndex === index }">
+                    <div class="timeline-graphic"><span :class="{ 'active-anim': isIntroDone }"></span></div>
+                    <div class="bg-keyword-text">{{ era.bgKeyword }}</div>
+                    <div class="timeline-dot" :class="era.type"></div>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <!-- MainCard: Props 업데이트 (clearCount 전달) -->
+        <MainCard :current-era="currentEra" :selected-book="selectedBook" :is-books-visible="isBooksVisible" :current-user="currentUser" :is-cleared="isCurrentEraCleared" :clear-count="currentEraClearCount" :book-notes="bookNotes" :is-note-loading="isNoteLoading" @toggle-books="toggleBooks" @close-book-detail="closeBookDetail" @start-quiz="openQuiz" @open-video="openVideo" @save-note="saveNote" @delete-note="deleteNote" @update-note-text="(text) => (noteText = text)" />
+
+        <div class="bible_bg">
+            <figure ref="bgImage">
+                <img :src="displayBgUrl" alt="Background" />
+            </figure>
+        </div>
+
+        <BookListPanel :is-visible="isBooksVisible" :current-era="currentEra" :selected-book="selectedBook" @close="isBooksVisible = false" @select-book="selectBook" />
+
+        <!-- 퀴즈 모달 -->
+        <transition name="fade">
+            <QuizModal v-if="isQuizOpen" :questions="activeQuizList" :era-title="currentEra.title" @close="closeQuiz" @quiz-completed="handleQuizCompleted" />
+        </transition>
+
+        <!-- 영상 모달 -->
+        <transition name="fade">
+            <VideoModal v-if="isVideoOpen" :video-id="currentVideoId" @close="closeVideo" />
+        </transition>
+        <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
     </div>
-
-    <!-- MainCard: Props 업데이트 (clearCount 전달) -->
-    <MainCard 
-      :current-era="currentEra" 
-      :selected-book="selectedBook" 
-      :is-books-visible="isBooksVisible" 
-      :current-user="currentUser" 
-      :is-cleared="isCurrentEraCleared"
-      :clear-count="currentEraClearCount"
-      :book-notes="bookNotes"
-      :is-note-loading="isNoteLoading"
-      @toggle-books="toggleBooks" 
-      @close-book-detail="closeBookDetail" 
-      @start-quiz="openQuiz" 
-      @open-video="openVideo" 
-      @save-note="saveNote"
-      @delete-note="deleteNote"
-      @update-note-text="(text) => noteText = text"
-    />
-
-    <div class="bible_bg">
-      <figure ref="bgImage">
-        <img :src="displayBgUrl" alt="Background" />
-      </figure>
-    </div>
-
-    <BookListPanel 
-      :is-visible="isBooksVisible" 
-      :current-era="currentEra" 
-      :selected-book="selectedBook" 
-      @close="isBooksVisible = false" 
-      @select-book="selectBook" 
-    />
-
-    <!-- 퀴즈 모달 -->
-    <transition name="fade">
-      <QuizModal 
-        v-if="isQuizOpen" 
-        :questions="activeQuizList" 
-        :era-title="currentEra.title" 
-        @close="closeQuiz" 
-        @quiz-completed="handleQuizCompleted" 
-      />
-    </transition>
-
-    <!-- 영상 모달 -->
-    <transition name="fade">
-      <VideoModal v-if="isVideoOpen" :video-id="currentVideoId" @close="closeVideo" />
-    </transition>
-    <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
-  </div>
 </template>
-
 
 <style lang="scss" scoped>
 @use 'sass:color';
@@ -745,7 +709,6 @@ onUnmounted(() => {
                 background-color: $text-primary;
                 filter: blur(10px);
                 position: absolute;
-                animation: move infinite 5s linear;
                 visibility: hidden;
                 opacity: 0;
 
@@ -756,6 +719,14 @@ onUnmounted(() => {
                     100% {
                         left: 100%;
                     }
+                }
+            }
+
+            &.active-anim{
+                &::before {
+                    visibility: visible;
+                    opacity: 1;
+                    animation: move infinite 5s linear;
                 }
             }
         }

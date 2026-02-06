@@ -254,7 +254,7 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
     width: 200%;
     height: 200%;
     background: conic-gradient(transparent, rgba($ot-color, 0.5), transparent 30%);
-    animation: rotate 4s linear infinite;
+    //animation: rotate 4s linear infinite;
     pointer-events: none;
     transition: all 0.25s;
   }
