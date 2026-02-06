@@ -10,7 +10,7 @@ const steps = [
   {
     title: '성경의 흐름을 한눈에!',
     desc: '좌우로 스크롤(또는 드래그)하여 창조부터 요한계시록까지의 역사적 흐름을 탐험해보세요.',
-    icon: '↔️', // 나중에 실제 이미지 경로(예: /img/tutorial/step1.png)로 교체하세요.
+    icon: '/img/tutorial/tutorial_01.gif', // 나중에 실제 이미지 경로(예: /img/tutorial/step1.png)로 교체하세요.
   },
   {
     title: '시대별 상세 정보',
@@ -63,7 +63,10 @@ const finishTutorial = () => {
         <!-- 캡처 이미지 영역 (현재는 아이콘으로 대체) -->
         <div class="image-area">
           <div class="placeholder-img">
-            <span class="icon">{{ steps[currentStep].icon }}</span>
+            <!-- <span class="icon">{{ steps[currentStep].icon }}</span> -->
+            <figure>
+              <img :src="steps[currentStep].icon" alt="" />
+            </figure>
           </div>
         </div>
 
@@ -115,7 +118,7 @@ $accent-color: #6366f1;
 .tutorial-card {
   background: $card-bg;
   width: 100%;
-  max-width: 400px;
+  max-width: 800px;
   border-radius: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -157,7 +160,7 @@ $accent-color: #6366f1;
 
   .image-area {
     margin-bottom: 1.5rem;
-    height: 180px;
+    height: 360px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -167,7 +170,20 @@ $accent-color: #6366f1;
     /* 실제 이미지 사용 시 이 부분을 img 태그 스타일로 대체 */
     .placeholder-img {
       font-size: 5rem;
-      animation: bounce 2s infinite;
+      //animation: bounce 2s infinite;
+      width: 100%;
+      height: 100%;
+
+      figure {
+        width: 100%;
+        height: 100%;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+      }
     }
   }
 
