@@ -17,6 +17,7 @@ import MainCard from '@/components/MainCard.vue';
 import BookListPanel from '@/components/BookListPanel.vue';
 import QuizModal from '@/components/QuizModal.vue';
 import VideoModal from '@/components/VideoModal.vue';
+import TutorialOverlay from '@/components/TutorialOverlay.vue';
 
 // GSAP 플러그인 등록
 gsap.registerPlugin(ScrollTrigger);
@@ -42,6 +43,9 @@ const eraProgressMap = ref(new Map()); // [추가] 시대별 진행 상황 (푼 
 // 영상 모달 관련 상태
 const isVideoOpen = ref(false);
 const currentVideoId = ref('');
+
+// 튜토리얼 모달 상태
+const showTutorial = ref(false);
 
 const currentEra = computed(() => eras.value[currentEraIndex.value]);
 
@@ -157,6 +161,11 @@ const openVideo = (type) => {
 const closeVideo = () => {
   isVideoOpen.value = false;
   currentVideoId.value = '';
+};
+
+// 튜토리얼 닫기 핸들러
+const closeTutorial = () => {
+  showTutorial.value = false;
 };
 
 // --- Firebase Listeners ---
@@ -326,6 +335,14 @@ onMounted(async () => {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
 
+  // 튜토리얼 확인 로직: 로컬 스토리지에 기록이 없으면 튜토리얼 표시
+  if (typeof window !== 'undefined') {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeenTutorial) {
+      showTutorial.value = true;
+    }
+  }
+
   // Panorama 컴포넌트에서도 유저 정보를 알아야 함 (DB 저장용)
   onAuthStateChanged(auth, (user) => {
     currentUser.value = user;
@@ -444,6 +461,11 @@ onUnmounted(() => {
     </transition>
     <div v-if="isBooksVisible" @click="isBooksVisible = false" class="overlay"></div>
   </div>
+
+  <!-- 튜토리얼 모달 연결 (v-if & @close) -->
+  <transition name="fade">
+    <TutorialOverlay v-if="showTutorial" @close="closeTutorial" />
+  </transition>
 </template>
 
 <style lang="scss" scoped>
