@@ -44,6 +44,7 @@ const openInquiry = () => {
   @include mobile {
     background: linear-gradient(to top, rgba(2, 6, 23, 0.9), transparent);
     padding: 1rem;
+    backdrop-filter: blur(10px);
   }
 
   .footer-inner {

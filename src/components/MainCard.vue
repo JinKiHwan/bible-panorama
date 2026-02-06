@@ -204,10 +204,6 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
   display: flex;
   align-items: center;
   justify-content: center;
-  @include mobile {
-    align-items: flex-end;
-    padding-bottom: 2rem;
-  }
 }
 
 .main-card {
@@ -227,10 +223,10 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
   z-index: 0;
   
   @include mobile {
-    width: 95%;
+    width: 90%;
     padding: 2rem;
     gap: 1rem;
-    max-height: 80vh;
+    max-height: 75vh;
     margin-bottom: 5vh;
   }
 
@@ -320,7 +316,7 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
 
     .mobile-only-img {
       width: 100%;
-      height: 200px;
+      //height: 200px;
       object-fit: cover;
       margin: 0;
       position: relative;
@@ -493,6 +489,7 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
       @include mobile {
         font-size: 22px;
         margin-bottom: 10px;
+        gap: 8px;
       }
       
       /* [수정] 뱃지 스타일: 티어별 색상 적용 */
@@ -506,6 +503,7 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
         background: #94a3b8; /* 기본값 */
 
         @include mobile {
+          padding: 4px 8px;
           font-size: 12px;
         }
 
@@ -538,7 +536,7 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
     @include mobile {
       font-size: 14px;
       line-height: 1.5;
-      max-height: 100px;
+      max-height: 60px;
       overflow-y: auto;
       margin-bottom: 0.5rem;
     }

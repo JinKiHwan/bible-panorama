@@ -351,6 +351,14 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
         .info-wrapper {
             flex: 1;
 
+            @include mobile {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+            }
+
             .email {
                 font-size: 0.875rem;
                 color: $text-secondary;
@@ -362,14 +370,20 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
                 align-items: center;
                 gap: 0.75rem;
 
-                @media (max-width: 600px) {
+                @include mobile {
+                    width: auto;
+                    display: inline-block;
                     justify-content: center;
+                    position: relative;
                 }
 
                 h2 {
                     font-size: 1.75rem;
                     font-weight: 700;
                     margin: 0;
+                    @include mobile {
+                        font-size: 16px;
+                    }
                 }
 
                 .edit-btn {
@@ -380,6 +394,14 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
                     color: $text-secondary;
                     border-radius: 0.25rem;
                     cursor: pointer;
+                    @include mobile {
+                        font-size: 12px;
+                        padding: 2px 6px;
+                        position: absolute;
+                        right: 0;
+                        top: 50%;
+                        transform: translate(100%, -50%);
+                    }
                     &:hover {
                         color: white;
                         border-color: white;
@@ -453,15 +475,27 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
     font-size: 0.75rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
+
+    @include mobile {
+        margin-bottom: 8px;
+        font-size: 12px;
+        padding: 5px 10px;
+    }
 }
 .stats {
     margin-top: 1rem;
     font-size: 0.9rem;
     color: $text-secondary;
+    @include mobile {
+        font-size: 14px;
+    }
     .highlight {
         color: $gold-color;
         font-weight: 700;
         font-size: 1.1rem;
+        @include mobile {
+            font-size: 14px;
+        }
     }
 }
 
@@ -475,18 +509,30 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
         align-items: center;
         gap: 0.5rem;
 
+        @include mobile {
+            font-size: 16px;
+        }
+
         .count {
             font-size: 0.875rem;
             color: $accent-color;
             background: rgba($accent-color, 0.1);
             padding: 0.25rem 0.5rem;
             border-radius: 999px;
+
+            @include mobile {
+                font-size: 14px;
+            }
         }
         .sub-text {
             font-size: 0.8rem;
             color: $text-secondary;
             font-weight: normal;
             margin-left: 0.5rem;
+
+            @include mobile {
+                font-size: 12px;
+            }
         }
     }
 
@@ -504,6 +550,10 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
             transition: all 0.3s;
             overflow: hidden;
             cursor: pointer;
+
+            @include mobile {
+                padding: 18px 16px;
+            }
 
             /* 클리어 상태 스타일 */
             &.clear {
@@ -535,6 +585,10 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
                     margin-bottom: 0.25rem;
                     display: inline-block;
 
+                    @include mobile {
+                        font-size: 12px;
+                    }
+
                     &.OT {
                         color: #67e8f9;
                         background: rgba(6, 182, 212, 0.1);
@@ -549,6 +603,10 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
                     font-size: 1rem;
                     margin: 0.5rem 0 0;
                     font-weight: 600;
+
+                    @include mobile {
+                        font-size: 14px;
+                    }
                 }
             }
 
@@ -558,12 +616,21 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
                 bottom: 0.75rem;
                 right: 0.75rem;
 
+                @include mobile {
+                    bottom: 14px;
+                    right: 8px;
+                }
+
                 .tier-text {
                     font-size: 0.8rem;
                     font-weight: 700;
                     padding: 0.2rem 0.5rem;
                     border-radius: 0.3rem;
                     background: rgba(0, 0, 0, 0.5);
+
+                    @include mobile {
+                        font-size: 12px;
+                    }
 
                     /* 티어별 색상 적용 */
                     &.tier-1 {
@@ -592,6 +659,9 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
                 .locked {
                     font-size: 0.8rem;
                     color: $text-secondary;
+                    @include mobile {
+                        font-size: 12px;
+                    }
                     .icon {
                         margin-right: 2px;
                     }
@@ -632,6 +702,10 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
     h3 {
         margin: 0;
         font-size: 1.25rem;
+
+        @include mobile {
+            font-size: 14px;
+        }
     }
     .close-btn {
         background: none;
@@ -639,14 +713,32 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
         color: $text-secondary;
         font-size: 1.5rem;
         cursor: pointer;
+
+        @include mobile {
+            font-size: 14px;
+        }
         &:hover {
             color: white;
         }
     }
 }
 .modal-body {
+    max-height: 70vh;
     padding: 1.5rem;
     overflow-y: auto;
+
+    &::-webkit-scrollbar {
+        width: 3px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent; /* 스크롤바 뒷 배경 색상 */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba($color: $ot-color, $alpha: 1);
+        border-radius: 12px 12px 12px 12px;
+    }
 }
 .quiz-list {
     display: flex;
@@ -666,25 +758,44 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
         font-size: 0.75rem;
         margin-bottom: 0.5rem;
         color: $text-secondary;
+        @include mobile {
+            font-size: 12px;
+        }
     }
     .question {
         margin: 0 0 0.5rem;
         font-weight: 500;
+        @include mobile {
+            font-weight: 400;
+            font-size: 14px;
+            line-height: 1.5;
+        }
         &.locked-text {
             color: $text-secondary;
             font-style: italic;
+
+            @include mobile {
+                font-size: 12px;
+            }
         }
     }
     .answer {
         font-size: 0.9rem;
         color: #4ade80;
         font-weight: 600;
+
+        @include mobile {
+            font-size: 14px;
+        }
     }
 }
 .no-data {
     text-align: center;
     color: $text-secondary;
     padding: 2rem;
+    @include mobile {
+        font-size: 12px;
+    }
 }
 
 /* 3. 계정 관리 */
@@ -702,6 +813,10 @@ $tier-5: #fbbf24; /* 마스터 (골드) */
         cursor: pointer;
         opacity: 0.7;
         transition: opacity 0.2s;
+
+        @include mobile {
+            font-size: 12px;
+        }
 
         &:hover {
             opacity: 1;
