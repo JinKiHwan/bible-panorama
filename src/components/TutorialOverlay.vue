@@ -5,27 +5,27 @@ const emit = defineEmits(['close']);
 
 const currentStep = ref(0);
 
-// 튜토리얼 단계 데이터
+// 튜토리얼 단계 데이터 (유튜브 Video ID 적용)
 const steps = [
   {
     title: '성경의 흐름을 한눈에!',
     desc: '좌우로 스크롤(또는 드래그)하여 창조부터 요한계시록까지의 역사적 흐름을 탐험해보세요.',
-    icon: '/img/tutorial/tutorial_01.gif', // 나중에 실제 이미지 경로(예: /img/tutorial/step1.png)로 교체하세요.
+    videoId: 'CpSwy3qodT0', // https://youtu.be/CpSwy3qodT0
   },
   {
     title: '시대별 상세 정보',
     desc: '각 시대를 클릭하면 해당 시대의 주요 인물과 배경, 그리고 관련된 성경 목록을 볼 수 있습니다.',
-    icon: '📜',
+    videoId: 'CrtRIsU-G9M', // https://youtu.be/CrtRIsU-G9M
   },
   {
-    title: '퀴즈 풀고 티어 올리기',
-    desc: '로그인 후 퀴즈에 도전하세요! 5문제를 모두 맞추면 "CLEAR" 뱃지와 칭호를 획득할 수 있습니다.',
-    icon: '🏅',
+    title: '퀴즈 풀고 칭호 받기',
+    desc: '로그인 후 퀴즈에 도전하세요! 5문제를 모두 맞추면 칭호를 획득할 수 있습니다.',
+    videoId: 'n_7N2o2OG4Q', // https://youtu.be/n_7N2o2OG4Q
   },
   {
-    title: '영상으로 더 깊이',
-    desc: 'Intro 영상으로 개요를 잡고, 퀴즈를 클리어하여 잠겨있는 심화(Deep) 강의 영상을 해금해보세요.',
-    icon: '🎬',
+    title: '마이페이지에서 나의 여정 확인하기',
+    desc: '마이페이지에서 내가 획득한 칭호와 푼 퀴즈 기록을 확인할 수 있습니다.',
+    videoId: 'ZsgSDyQMZvg', // https://youtu.be/ZsgSDyQMZvg
   },
 ];
 
@@ -47,7 +47,7 @@ const prevStep = () => {
 
 const finishTutorial = () => {
   // 로컬 스토리지에 튜토리얼 완료 기록 저장
-  //localStorage.setItem('hasSeenTutorial', 'true');
+  localStorage.setItem('hasSeenTutorial', 'true');
   emit('close');
 };
 </script>
@@ -60,13 +60,30 @@ const finishTutorial = () => {
 
       <!-- 슬라이드 영역 -->
       <div class="slide-content">
-        <!-- 캡처 이미지 영역 (현재는 아이콘으로 대체) -->
+        <!-- 영상 영역 -->
         <div class="image-area">
-          <div class="placeholder-img">
-            <!-- <span class="icon">{{ steps[currentStep].icon }}</span> -->
-            <figure>
-              <img :src="steps[currentStep].icon" alt="" />
-            </figure>
+          <div class="video-wrapper">
+            <!-- 
+              유튜브 옵션 설명:
+              autoplay=1: 자동 재생
+              mute=1: 음소거 (브라우저 정책상 자동재생 시 필수)
+              loop=1: 반복 재생
+              playlist={videoId}: 단일 영상 반복 재생을 위해 필수
+              controls=0: 컨트롤 바 숨김
+              rel=0: 관련 영상 표시 안 함 (같은 채널 영상만 표시)
+              modestbranding=1: 로고 최소화
+              playsinline=1: iOS 인라인 재생
+            -->
+            <iframe
+              :key="currentStep"
+              :src="`https://www.youtube.com/embed/${steps[currentStep].videoId}?autoplay=1&mute=1&loop=1&playlist=${steps[currentStep].videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`"
+              title="Tutorial Video"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+            <!-- 터치/클릭 방지용 투명 커버 (영상을 조작하지 못하게 함) -->
+            <div class="click-guard"></div>
           </div>
         </div>
 
@@ -128,6 +145,11 @@ $accent-color: #6366f1;
   flex-direction: column;
   gap: 1.5rem;
   animation: slideUp 0.4s ease-out;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+    gap: 1rem;
+  }
 }
 
 @keyframes slideUp {
@@ -150,6 +172,12 @@ $accent-color: #6366f1;
   color: $text-secondary;
   font-size: 1.2rem;
   cursor: pointer;
+  z-index: 10;
+
+  @include mobile {
+    font-size: 3rem;
+    top: -4.5rem;
+  }
   &:hover {
     color: white;
   }
@@ -160,29 +188,35 @@ $accent-color: #6366f1;
 
   .image-area {
     margin-bottom: 1.5rem;
-    height: 360px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    /* 16:9 비율 유지를 위한 설정 */
+    position: relative;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 1rem;
+    overflow: hidden;
 
-    /* 실제 이미지 사용 시 이 부분을 img 태그 스타일로 대체 */
-    .placeholder-img {
-      font-size: 5rem;
-      //animation: bounce 2s infinite;
+    .video-wrapper {
+      position: relative;
       width: 100%;
-      height: 100%;
+      padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+      height: 0;
 
-      figure {
+      iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
+        pointer-events: none; /* iframe 내부 클릭 방지 (옵션) */
+      }
 
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
+      .click-guard {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2; /* iframe 위에 투명 막 */
       }
     }
   }
@@ -192,6 +226,10 @@ $accent-color: #6366f1;
     font-weight: 700;
     color: white;
     margin-bottom: 0.5rem;
+    @include mobile {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
   }
 
   p {
@@ -199,6 +237,10 @@ $accent-color: #6366f1;
     color: $text-secondary;
     line-height: 1.6;
     word-break: keep-all;
+    @include mobile {
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
   }
 }
 
@@ -218,6 +260,11 @@ $accent-color: #6366f1;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.2);
       transition: all 0.3s;
+
+      @include mobile {
+        width: 6px;
+        height: 6px;
+      }
 
       &.active {
         background: $accent-color;
@@ -240,6 +287,10 @@ $accent-color: #6366f1;
       font-size: 1rem;
       transition: all 0.2s;
 
+      @include mobile {
+        font-size: 16px;
+      }
+
       &.prev {
         background: transparent;
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -258,16 +309,6 @@ $accent-color: #6366f1;
         }
       }
     }
-  }
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
   }
 }
 </style>
