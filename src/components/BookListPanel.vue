@@ -64,6 +64,11 @@ const emit = defineEmits(['close', 'selectBook']);
   opacity: 0;
   transform: translateY(100%);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  .light & {
+    filter: invert(1);
+    background-color: #111;
+  }
   &.show {
     transform: translateY(0);
     visibility: visible;
@@ -183,9 +188,17 @@ const emit = defineEmits(['close', 'selectBook']);
       cursor: pointer;
       position: relative;
       overflow: hidden;
+
+      .light & {
+        background-color: rgba(53, 53, 53, 0.5);
+      }
       &.selected {
         border-color: $accent-color;
         background-color: #1e293b;
+
+        .light & {
+          background-color: rgba(53, 53, 53, 0.1);
+        }
         .book-bg-icon {
           opacity: 0.1;
         }

@@ -477,6 +477,14 @@ onUnmounted(() => {
   min-height: 100vh;
   position: relative;
   z-index: 0;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+
+  .light & {
+    background-color: $bg-light-color;
+    color: $text-light-primary;
+  }
 }
 
 .serif {
@@ -716,6 +724,10 @@ onUnmounted(() => {
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.2);
 
+    .light & {
+      background: rgba(106, 106, 106, 0.2);
+    }
+
     /* 데스크탑: 가로 선 */
     @media (min-width: 768px) {
       top: 50%;
@@ -746,6 +758,10 @@ onUnmounted(() => {
         position: absolute;
         visibility: hidden;
         opacity: 0;
+
+        .light & {
+          background-color: rgba(#1e293b, 0.2);
+        }
 
         @keyframes move {
           0% {
@@ -850,6 +866,11 @@ onUnmounted(() => {
   z-index: -1;
   background-color: $bg-color;
   transform: translate(-50%, -50%);
+  transition: background-color 0.3s;
+
+  .light & {
+    background-color: $bg-light-color;
+  }
 
   figure {
     width: 100%;

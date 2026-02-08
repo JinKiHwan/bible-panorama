@@ -270,9 +270,20 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
     width: 200%;
     height: 200%;
     background: conic-gradient(transparent, rgba($ot-color, 0.5), transparent 30%);
-
     pointer-events: none;
     transition: all 0.25s;
+
+    .light & {
+      background: conic-gradient(transparent, rgba($ot-color, 1), transparent 50%);
+    }
+  }
+
+  &.NT::after {
+    background: conic-gradient(transparent, rgba($nt-color, 0.5), transparent 30%);
+
+    .light & {
+      background: conic-gradient(transparent, rgba($nt-color, 1), transparent 50%);
+    }
   }
 
   &.play {
@@ -288,10 +299,10 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
     background: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, #212121 100%);
     border-radius: inherit;
     z-index: -1;
-  }
 
-  &.NT::after {
-    background: conic-gradient(transparent, rgba($nt-color, 0.5), transparent 30%);
+    .light & {
+      background: linear-gradient(180deg, #888b8e 70%, #56585a 100%);
+    }
   }
 
   /* --- [추가] 티어별 네온 색상 변경 --- */
@@ -474,11 +485,18 @@ $tier-5: #fbbf24; /* 마스터 (Gold) */
         background-color: rgba($ot-color, 0.2);
         color: color.adjust($ot-color, $lightness: 20%);
         border-color: rgba($ot-color, 0.3);
+
+        .light & {
+          background-color: color.adjust($ot-color, $lightness: -20%);
+        }
       }
       &.NT {
-        background-color: rgba($nt-color, 0.2);
+        background-color: rgba($ot-color, 0.2);
         color: color.adjust($nt-color, $lightness: 20%);
         border-color: rgba($nt-color, 0.3);
+        .light & {
+          background-color: color.adjust($nt-color, $lightness: -20%);
+        }
       }
     }
     .era-type {
