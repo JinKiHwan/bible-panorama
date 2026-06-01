@@ -74,11 +74,11 @@ const handleEnter = () => {
   <div class="app-layout">
     <!-- [추가] 인트로 오버레이 (조건부 렌더링 + 트랜지션) -->
     <transition name="fade">
-      <IntroOverlay v-if="showIntro" @enter="handleEnter" />
+      <IntroOverlay v-if="showIntro && !route.meta.hideIntro" @enter="handleEnter" />
     </transition>
 
     <!-- 헤더 전역 배치 -->
-    <AppHeader :is-panorama="isPanorama" />
+    <AppHeader v-if="!route.meta.hideHeaderFooter" :is-panorama="isPanorama" />
 
     <!-- 페이지 컨텐츠 -->
     <RouterView v-slot="{ Component }">
@@ -88,7 +88,7 @@ const handleEnter = () => {
     </RouterView>
 
     <!-- 푸터 전역 배치 -->
-    <AppFooter />
+    <AppFooter v-if="!route.meta.hideHeaderFooter" />
   </div>
 </template>
 

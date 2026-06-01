@@ -6,4 +6,10 @@ import MyPage from '@/views/MyPage.vue';
 export const routes = [
   { path: '/', name: 'home', component: HomeView },
   { path: '/mypage', name: 'MyPage', component: MyPage },
+  {
+    path: '/act-summary',
+    name: 'ActSummary',
+    component: () => import('@/views/ActSummaryView.vue'),
+    meta: { hideHeaderFooter: true, hideIntro: true },
+  },
 ];
