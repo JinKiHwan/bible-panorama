@@ -3,24 +3,42 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
-// ⚠️ 중요: Firebase 콘솔 > 프로젝트 설정 > 내 앱 > 'firebaseConfig' 내용을 아래에 덮어씌우세요.
-// 보안을 위해 실제 배포 시에는 .env 환경변수를 사용하는 것을 권장합니다.
+// Firebase configuration
+const isConfigured = !!import.meta.env.VITE_FIREBASE_PROJECT_ID;
+
+if (!isConfigured) {
+  console.warn(
+    '[Firebase] Firebase configuration is missing. "projectId" is not set.\n' +
+    'Please create a `.env` file in the root directory and add your Firebase credentials:\n' +
+    'VITE_FIREBASE_API_KEY=...\n' +
+    'VITE_FIREBASE_AUTH_DOMAIN=...\n' +
+    'VITE_FIREBASE_PROJECT_ID=...\n' +
+    'VITE_FIREBASE_STORAGE_BUCKET=...\n' +
+    'VITE_FIREBASE_MESSAGING_SENDER_ID=...\n' +
+    'VITE_FIREBASE_APP_ID=...\n\n' +
+    'Falling back to placeholder configuration to prevent application boot crash.'
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'mock-api-key',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'mock-auth-domain',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'mock-project-id',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'mock-storage-bucket',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || 'mock-messaging-sender',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || 'mock-app-id',
 };
 
 // 파이어베이스 앱 초기화
 const app = initializeApp(firebaseConfig);
-//const analytics = getAnalytics(app);
 
 let analytics;
-if (typeof window !== 'undefined') {
-  analytics = getAnalytics(app);
+if (typeof window !== 'undefined' && isConfigured) {
+  try {
+    analytics = getAnalytics(app);
+  } catch (err) {
+    console.error('[Firebase] Failed to initialize Analytics:', err);
+  }
 }
 
 // 인증(Auth) 서비스 내보내기

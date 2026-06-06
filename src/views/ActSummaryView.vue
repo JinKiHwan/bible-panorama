@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { actSummaryData } from '@/data/actSummaryData';
+import { gsap } from 'gsap';
 
 const router = useRouter();
 
@@ -87,24 +88,114 @@ const currentSegment = computed(() => {
   return actSummaryData.find(item => item.id === activeSegmentId.value) || actSummaryData[0];
 });
 
-// 주요인물 캐릭터 선택 상태 관리
-const selectedCharacterId = ref('');
+// 각 장별 블러 상태 관리
+const revealedChapters = ref({});
 
-// 단락이 바뀌거나 구분 모달이 열릴 때 첫 번째 캐릭터 자동 선택
-watch([activeSegmentId, showClassification], () => {
-  const seg = currentSegment.value;
-  if (seg && seg.characters && seg.characters.length > 0) {
-    selectedCharacterId.value = seg.characters[0].id;
-  } else {
-    selectedCharacterId.value = '';
-  }
-}, { immediate: true });
-
-const currentCharacter = computed(() => {
-  const seg = currentSegment.value;
-  if (!seg || !seg.characters) return null;
-  return seg.characters.find(c => c.id === selectedCharacterId.value) || seg.characters[0];
+// 단락 03(id: 3)의 다른 5개 카드가 모두 열렸는지 여부 계산
+const allOthersRevealed = computed(() => {
+  const ranges = ['13-15장', '16-18장', '19-21장', '22-26장', '27-28장'];
+  return ranges.every(range => !!revealedChapters.value[`3-${range}`]);
 });
+
+const isRevealed = (range) => {
+  const key = `${activeSegmentId.value}-${range}`;
+  return !!revealedChapters.value[key];
+};
+
+const revealCard = (event, range) => {
+  const key = `${activeSegmentId.value}-${range}`;
+  if (revealedChapters.value[key]) return; // 이미 해제된 상태면 무시
+  
+  revealedChapters.value[key] = true;
+  
+  // 파사삭 파티클 효과 실행
+  createParticles(event);
+};
+
+// 모달이 열릴 때 블러 리셋
+watch(showClassification, (newVal) => {
+  if (newVal) {
+    revealedChapters.value = {};
+  }
+});
+
+const createParticles = (event) => {
+  const card = event.currentTarget;
+  if (!card) return;
+  
+  const rect = card.getBoundingClientRect();
+  
+  // 클릭한 지점의 마우스 좌표를 사용
+  let clickX = event.clientX;
+  let clickY = event.clientY;
+  
+  // 좌표가 없는 경우(예: 키보드 클릭) 카드 중심으로 포커스
+  if (!clickX || !clickY) {
+    clickX = rect.left + rect.width / 2;
+    clickY = rect.top + rect.height / 2;
+  }
+  
+  const isActs29 = card.classList.contains('acts29-card');
+  const particleCount = isActs29 ? 65 : 45; // 29장은 더 파사삭 터지는 풍성한 모션
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.top = '0';
+  container.style.left = '0';
+  container.style.width = '100vw';
+  container.style.height = '100vh';
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '99999';
+  document.body.appendChild(container);
+  
+  // 29장일 때는 황금빛 찬란한 스파크 파티클을 뿜도록 함
+  const colors = isActs29 
+    ? ['#fbbf24', '#f59e0b', '#d97706', '#ffffff', '#fef3c7'] 
+    : ['#4f46e5', '#818cf8', '#38bdf8', '#34d399', '#fbbf24', '#ffffff'];
+  const particles = [];
+  
+  for (let i = 0; i < particleCount; i++) {
+    const p = document.createElement('div');
+    p.style.position = 'absolute';
+    p.style.left = `${clickX}px`;
+    p.style.top = `${clickY}px`;
+    
+    // 파사삭 모래알 같은 작은 입자 크기
+    const size = Math.random() * 5 + 2;
+    p.style.width = `${size}px`;
+    p.style.height = `${size}px`;
+    p.style.borderRadius = Math.random() > 0.6 ? '50%' : '1px';
+    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    p.style.opacity = Math.random() * 0.8 + 0.2;
+    
+    container.appendChild(p);
+    particles.push(p);
+  }
+  
+  particles.forEach((p) => {
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = Math.random() * 140 + 40; // 폭발 속도
+    const destX = Math.cos(angle) * velocity;
+    // 파사삭 흩날리며 떨어지는 듯한 효과를 주기 위해 Y축에 약간의 중력(떨어짐) 부여
+    const destY = Math.sin(angle) * velocity + Math.random() * 50 + 10;
+    
+    gsap.to(p, {
+      x: destX,
+      y: destY,
+      opacity: 0,
+      scale: 0.1,
+      rotation: Math.random() * 360,
+      duration: Math.random() * 0.8 + 0.6,
+      ease: 'power3.out',
+      onComplete: () => {
+        p.remove();
+      }
+    });
+  });
+  
+  setTimeout(() => {
+    container.remove();
+  }, 1600);
+};
 
 // 이미지 로드 실패 시 플레이스홀더로 대체하기 위한 에러 핸들러
 const handleImgError = (character) => {
@@ -173,7 +264,7 @@ onUnmounted(() => {
             </svg>
           </div>
           <h2 class="card-title">개 요</h2>
-          <p class="card-desc">사도행전의 주제와 핵심 성경 구절을 입체적인 블라인드 효과와 함께 선포합니다.</p>
+          <p class="card-desc">사도행전의 주제와 핵심 성경 구절을 친숙한 메신저 대화 흐름을 따라 입체적으로 살펴봅니다.</p>
           <div class="btn-explore">시작하기 <span class="arrow-icon">→</span></div>
         </div>
       </div>
@@ -333,27 +424,25 @@ onUnmounted(() => {
             <!-- 스크롤 가능 컨텐츠 영역 (단락 전환 시 페이드업 애니메이션 적용) -->
             <transition name="segment-fade-up" mode="out-in">
               <div :key="activeSegmentId" class="modal-scrollable-content">
-                <!-- 3. 주요 등장인물 캐릭터 선택창 영역 (미니멀 초상화+이름) -->
+                <!-- 3. 주요 등장인물 캐릭터 표시 영역 (미니멀 초상화+이름) -->
                 <div class="characters-section" v-if="currentSegment.characters && currentSegment.characters.length > 0">
                   <h4 class="section-title">
-                    <span class="title-text">주요 등장인물 (클릭 시 하단 사역 요약이 전환됩니다)</span>
+                    <span class="title-text">주요 등장인물</span>
                     <span class="accent-line"></span>
                   </h4>
                   
                   <div class="character-simple-list">
-                    <button 
+                    <div 
                       v-for="char in currentSegment.characters" 
                       :key="char.id"
-                      class="char-simple-item"
-                      :class="{ 'active': selectedCharacterId === char.id }"
-                      @click="selectedCharacterId = char.id"
+                      class="char-simple-item static-item"
                     >
                       <div class="char-avatar-box">
                         <span v-if="!char.img">{{ char.name ? char.name[0] : '' }}</span>
                         <img v-else :src="char.img" :alt="char.name" @error="handleImgError(char)" />
                       </div>
                       <span class="char-name-label">{{ char.name }}</span>
-                    </button>
+                    </div>
                   </div>
                 </div>
 
@@ -370,14 +459,45 @@ onUnmounted(() => {
                       v-for="chap in currentSegment.chapters" 
                       :key="chap.range" 
                       class="detail-card"
+                      :class="{ 
+                        'is-blurred': !isRevealed(chap.range),
+                        'acts29-card': chap.isActs29,
+                        'ready-to-reveal': chap.isActs29 && allOthersRevealed && !isRevealed(chap.range)
+                      }"
+                      @click="revealCard($event, chap.range)"
                     >
                       <div class="card-header-row">
                         <span class="card-chapter-range">{{ chap.range }}</span>
                       </div>
-                      <h5 class="card-sub-title">{{ chap.subtitle }}</h5>
-                      <p class="card-desc-text">
-                        {{ chap.actions && chap.actions[selectedCharacterId] ? chap.actions[selectedCharacterId] : chap.description }}
-                      </p>
+                      
+                      <!-- 블러 처리 대상 영역 (장별 주제 + 장별 내용) -->
+                      <div class="blur-wrapper">
+                        <h5 class="card-sub-title">{{ chap.subtitle }}</h5>
+                        
+                        <!-- 장별 주제 -->
+                        <div class="card-section">
+                          <div class="section-label">장별 주제</div>
+                          <p class="card-desc-text theme-text">{{ chap.theme }}</p>
+                        </div>
+                        
+                        <!-- 장별 내용 -->
+                        <div class="card-section">
+                          <div class="section-label">장별 내용</div>
+                          <p class="card-desc-text content-text">{{ chap.content }}</p>
+                        </div>
+                      </div>
+
+                      <!-- 클릭 가이드 오버레이 (블러 상태일 때만 노출) -->
+                      <transition name="fade">
+                        <div v-if="!isRevealed(chap.range)" class="blur-overlay">
+                          <div class="reveal-badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="lock-icon">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                            <span>클릭하여 말씀 보기</span>
+                          </div>
+                        </div>
+                      </transition>
                     </div>
                   </transition-group>
                 </div>
@@ -1336,77 +1456,41 @@ onUnmounted(() => {
       }
 
       .char-simple-item {
-        background: none;
-        border: none;
-        padding: 0;
-        cursor: pointer;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 0.8rem;
-        transition: transform 0.2s ease;
 
-        .char-avatar-box {
-          width: 80px;
-          height: 80px;
-          border-radius: 20px; /* 모서리가 정교하게 깎인 둥근 사각형 */
-          overflow: hidden;
-          background: rgba(255, 255, 255, 0.6);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-
-          span {
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: #4f46e5;
-          }
-        }
-
-        .char-name-label {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #334155;
-          transition: all 0.3s ease;
-        }
-
-        /* Hover & Active Effects */
-        &:hover {
-          transform: translateY(-2px);
-          
+        &.static-item {
           .char-avatar-box {
-            border-color: rgba(99, 102, 241, 0.3);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
-          }
-          
-          .char-name-label {
-            color: #4f46e5;
-          }
-        }
+            width: 80px;
+            height: 80px;
+            border-radius: 20px; /* 모서리가 정교하게 깎인 둥근 사각형 */
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
 
-        &.active {
-          .char-avatar-box {
-            border-color: transparent; /* 테두리 두께를 유지하여 레이아웃 흔들림 방지 */
-            box-shadow: 0 0 0 3.5px #4f46e5, 0 6px 20px rgba(99, 102, 241, 0.15);
-            background: #e0e7ff;
-            
+            img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            }
+
             span {
+              font-size: 1.6rem;
+              font-weight: 800;
               color: #4f46e5;
             }
           }
 
           .char-name-label {
-            color: #4f46e5;
-            font-weight: 700;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #334155;
           }
         }
       }
@@ -1444,6 +1528,7 @@ onUnmounted(() => {
       }
 
       .detail-card {
+        position: relative;
         background: rgba(255, 255, 255, 0.7); /* 화사한 라이트 모드 카드 */
         border: 1px solid rgba(99, 102, 241, 0.1);
         border-radius: 16px;
@@ -1451,9 +1536,11 @@ onUnmounted(() => {
         transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
 
         .card-header-row {
           margin-bottom: 1rem;
+          z-index: 2;
         }
 
         .card-chapter-range {
@@ -1474,6 +1561,90 @@ onUnmounted(() => {
           line-height: 1.4;
         }
 
+        /* 블러 처리 대상 래퍼 */
+        .blur-wrapper {
+          transition: filter 0.5s cubic-bezier(0.16, 1, 0.3, 1), 
+                      opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+          filter: blur(0px);
+          opacity: 1;
+        }
+
+        /* 블러 오버레이 */
+        .blur-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: flex-start; /* 상단 정렬 */
+          justify-content: center;
+          padding-top: 5rem; /* 상단 여백(패딩) 부여 */
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(2.5px);
+          z-index: 3;
+          pointer-events: none;
+
+          .reveal-badge {
+            background: rgba(79, 70, 229, 0.9);
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.6rem 1.1rem;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.25);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+            .lock-icon {
+              width: 14px;
+              height: 14px;
+            }
+          }
+        }
+
+        /* 블러 활성화 상태 */
+        &.is-blurred {
+          cursor: pointer;
+
+          .blur-wrapper {
+            filter: blur(14px);
+            opacity: 0.35;
+            user-select: none;
+            pointer-events: none;
+          }
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(99, 102, 241, 0.35);
+            box-shadow: 0 12px 30px rgba(99, 102, 241, 0.15);
+            transform: translateY(-4px);
+
+            .reveal-badge {
+              background: #4f46e5;
+              transform: scale(1.05);
+              box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+            }
+          }
+        }
+
+        .card-section {
+          margin-top: 1rem;
+          border-top: 1px dashed rgba(99, 102, 241, 0.15);
+          padding-top: 1rem;
+
+          .section-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+        }
+
         .card-desc-text {
           font-size: 0.95rem;
           color: #334155; /* 가독성을 위한 짙은 회색 */
@@ -1481,6 +1652,7 @@ onUnmounted(() => {
           margin: 0;
           font-weight: 400; /* 좀 더 또렷한 굵기 */
           word-break: keep-all;
+          white-space: pre-line; /* 줄바꿈 렌더링 */
         }
 
         &:hover {
@@ -1488,6 +1660,124 @@ onUnmounted(() => {
           border-color: rgba(99, 102, 241, 0.3);
           box-shadow: 0 10px 25px rgba(99, 102, 241, 0.06);
           transform: translateY(-3px);
+        }
+
+        /* 29장 스페셜 카드 스타일 */
+        &.acts29-card {
+          transition: all 0.6s ease-out;
+
+          &.is-blurred {
+            opacity: 0.1;
+            filter: blur(2.5px);
+            border: 1px dashed rgba(99, 102, 241, 0.4);
+            background: transparent;
+            box-shadow: none;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+
+            .card-header-row,
+            .blur-wrapper,
+            .blur-overlay {
+              opacity: 0.25;
+              transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .blur-overlay {
+              background: transparent;
+              backdrop-filter: none;
+
+              .reveal-badge {
+                background: rgba(79, 70, 229, 0.55);
+                box-shadow: none;
+                transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+              }
+            }
+
+            /* 단락 03의 모든 카드가 열렸을 때 자동으로 하이라이트 활성화되는 상태 */
+            &.ready-to-reveal {
+              opacity: 0.45;
+              filter: blur(1.5px);
+              border: 1.2px dashed rgba(251, 191, 36, 0.75); /* 골드빛 점선 테두리 */
+              box-shadow: 0 0 15px rgba(251, 191, 36, 0.08);
+
+              .card-header-row,
+              .blur-wrapper,
+              .blur-overlay {
+                opacity: 0.6;
+              }
+
+              .blur-overlay {
+                .reveal-badge {
+                  background: rgba(251, 191, 36, 0.95); /* 따뜻한 골드 가이드 배지 */
+                  color: #78350f;
+                  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25);
+
+                  .lock-icon {
+                    color: #78350f;
+                  }
+                }
+              }
+
+              &:hover {
+                opacity: 0.55;
+                border-color: rgba(251, 191, 36, 0.9);
+                transform: translateY(-2px);
+              }
+            }
+
+            &:hover {
+              opacity: 0.2;
+              background: transparent;
+              border-color: rgba(99, 102, 241, 0.7);
+              transform: translateY(-2px);
+            }
+          }
+
+          &:not(.is-blurred) {
+            opacity: 1;
+            border: 1.5px solid #fbbf24;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(254, 243, 199, 0.95) 100%);
+            box-shadow: 0 15px 35px rgba(251, 191, 36, 0.18);
+            animation: goldGlow 2.5s infinite alternate;
+
+            .card-chapter-range {
+              background: rgba(251, 191, 36, 0.12);
+              border-color: rgba(251, 191, 36, 0.3);
+              color: #d97706;
+            }
+
+            .section-label {
+              color: #d97706;
+            }
+
+            &:hover {
+              background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(254, 243, 199, 0.98) 100%);
+              border-color: #fbbf24;
+              box-shadow: 0 20px 45px rgba(251, 191, 36, 0.3);
+              transform: translateY(-5px);
+            }
+          }
+        }
+      }
+
+      /* 서서히 사라지는 가이드 배지 트랜지션 */
+      .fade-enter-active,
+      .fade-leave-active {
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+      .fade-enter-from,
+      .fade-leave-to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      @keyframes goldGlow {
+        0% {
+          box-shadow: 0 10px 25px rgba(251, 191, 36, 0.12), 0 0 0 0px rgba(251, 191, 36, 0.05);
+          border-color: rgba(251, 191, 36, 0.4);
+        }
+        100% {
+          box-shadow: 0 15px 35px rgba(251, 191, 36, 0.25), 0 0 0 4px rgba(251, 191, 36, 0.15);
+          border-color: rgba(251, 191, 36, 0.8);
         }
       }
     }
